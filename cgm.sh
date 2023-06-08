@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$#" -ne 5 ]; then
+if [ "$#" -ne 4 ]; then
     echo "Usage: ./cgm.sh <input file> <delay> <nightscout address> <api key>"
     exit 1
 fi

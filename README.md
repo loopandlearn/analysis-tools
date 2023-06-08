@@ -3,21 +3,21 @@
 This is a Bash script for uploading continuous glucose monitor (CGM) values to a Nightscout site.
 
 Usage
-The script expects five arguments:
+The script expects four arguments:
 
-INPUT_FILE: the path to the file containing the CGM values. Each value should be on a new line.  
-DELAY: the delay (in seconds) between each CGM value submission.  
-NIGHTSCOUT_ADDRESS: the URL of the Nightscout site.  
-API_KEY: the Nightscout API key.  
+__INPUT_FILE__: the path to the file containing the CGM values. Each value should be on a new line.  
+__DELAY__: The delay (in seconds) between each CGM value submission. For example, use 300 for a 5-minute interval.  
+__NIGHTSCOUT_ADDRESS__: the URL of the Nightscout site.  
+__API_KEY__: the Nightscout API key.  
 
 
 You can call the script using the following format:
 ```bash
-./cgm.sh <input file> <delay> <nightscout address> <api key> <nights>
+./cgm.sh <input file> <delay> <nightscout address> <api key>
 ```
 For example:
 ```bash
-./cgm.sh cgm_values.txt 30 https://my.url.com my-secret-api-key
+./cgm.sh cgm_values.txt 300 https://my.url.com my-secret-api-key
 ```
 
 If you do not provide all five arguments, the script will print a usage message and exit.
