@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if ! command -v shasum &> /dev/null
+then
+    echo "shasum could not be found, please install it first"
+    exit
+fi
+
 if [ "$#" -ne 4 ]; then
     echo "Usage: ./cgm.sh <input file> <delay> <nightscout address> <api key>"
     exit 1
