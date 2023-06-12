@@ -18,9 +18,9 @@ duration="$3"
 
 # Calculate end timestamp
 end=$(date -u -v+${duration}S -j -f "%Y-%m-%dT%H:%M:%SZ" "${start}" "+%Y-%m-%dT%H:%M:%SZ")
-
+#echo $end
 # Make API request
-response=$(curl -s "${url}/api/v1/devicestatus.json?find%5Bcreated_at%5D%5B%24gte%5D=${start}&find%5Bcreated_at%5D%5B%24lte%5D=${end}")
+response=$(curl -s "${url}/api/v1/devicestatus.json?count=1000&find%5Bcreated_at%5D%5B%24gte%5D=${start}&find%5Bcreated_at%5D%5B%24lte%5D=${end}")
 
 #echo "${url}/api/v1/devicestatus.json?find%5Bcreated_at%5D%5B%24gte%5D=${start}&find%5Bcreated_at%5D%5B%24lte%5D=${end}"
 #echo $response
