@@ -22,10 +22,12 @@ The python program is in very early (all-in-one-file) prototype format.
 The command line arguments expected are:
 
 Usage:
-  python glucose_test.py arg1 arg2 [arg3] [arg4]
-    arg1 - path for data I/O
-    arg2 - timestamp identifier (used for I/O)
-       input: arg2_devicestatus.txt, arg2_treatments.txt
-       output: plot_arg2.png
-    arg3 - optional label, otherwise uses note in treatments
-    arg4 - optional output filename, otherwise uses glucose_impulse_response.csv
+
+python glucose_test.py arg1 arg2 [arg3] [arg4]
+
+* arg1 - path for data I/O
+* arg2 - timestamp identifier (used for I/O)
+    *   input: arg2_devicestatus.txt, arg2_treatments.txt
+    *   output: plot_arg2.png
+* arg3 - optional label, otherwise uses note in treatments
+* arg4 - optional output filename, otherwise uses glucose_impulse_response.csv
