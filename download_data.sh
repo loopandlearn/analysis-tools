@@ -8,8 +8,8 @@ if [ "$#" -lt 3 ]; then
     echo "start is date and time in utc format i.e. 2023-06-12T13:52:19Z"
     echo "duration is seconds from start, i.e. 3600 for an hour"
     echo "[api-key] is optional, use if the site requires it"
-    echo "[output_file] is optional, if not provided, output goes to terminal"
     echo "[query_name] is optional, if not provided, devicestatus is used"
+    echo "[output_file] is optional, save the raw download (no jq parsing for iob) to file"
     echo "Pipe the result from the execution to a csv file in order to import to excel"
     exit 1
 fi
@@ -19,8 +19,8 @@ url="$1"
 start="$2"
 duration="$3"
 api_key="$4"
-output_file="$5"
-query_name="$6"
+query_name="$5"
+output_file="$6"
 
 if [ -z "$query_name" ]; then
     query_name="devicestatus"
