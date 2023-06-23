@@ -21,8 +21,11 @@ The python program is in very early (all-in-one-file) prototype format.
 
 The command line arguments expected are:
 
-* path: path used to read data and write analysis results
-* devicestatus: downloaded text filename
-* treatments: downloaded text filename
-* label: (optional, default is read from Note in Nightscout treatments)
-* output_summary.csv: (optional, default path/glucose_impulse_response.csv)
+Usage:
+  python glucose_test.py arg1 arg2 [arg3] [arg4]
+    arg1 - path for data I/O
+    arg2 - timestamp identifier (used for I/O)
+       input: arg2_devicestatus.txt, arg2_treatments.txt
+       output: plot_arg2.png
+    arg3 - optional label, otherwise uses note in treatments
+    arg4 - optional output filename, otherwise uses glucose_impulse_response.csv
