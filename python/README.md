@@ -24,5 +24,5 @@ The command line arguments expected are:
 * path: path used to read data and write analysis results
 * devicestatus: downloaded text filename
 * treatments: downloaded text filename
-* label: (optional, default is read from Note in Nightscout devicestatus)
+* label: (optional, default is read from Note in Nightscout treatments)
 * output_summary.csv: (optional, default path/glucose_impulse_response.csv)
