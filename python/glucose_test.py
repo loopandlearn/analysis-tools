@@ -317,14 +317,7 @@ def main():
         print(dfTreatments)
     dfTreatments['insulin_cumsum'] = dfTreatments['insulin'].cumsum()
 
-    # plot pandas dataframe containing Nightscout data
-    # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
-    this_plotname = foldername + "/" + plot_filename
-    #label="Enter status for RC/IRC AB: Constant/GBAF"
-    if len(external_label) > 5:
-        test_designation = external_label
-    generatePlot(this_plotname, test_designation, dfDeviceStatus, dfTreatments)
-    print(' *** plot created:     ', this_plotname)
+ 
     maxIOB=dfDeviceStatus['IOB'].max()
     maxCumInsulin=dfTreatments['insulin_cumsum'].max()
     iobTimeDF=dfDeviceStatus[(dfDeviceStatus['IOB'] > (maxIOB-0.01))]
@@ -335,14 +328,17 @@ def main():
     ciDeltaTime=ciTime - begin_time
     print(f'{begin_time}, {iobDeltaTime}, {ciDeltaTime}, {maxIOB:6.2f}, {maxCumInsulin:6.2f}, "{test_designation}"')
 
-    reportfile="glucose_impulse_response.csv"
+    this_plotname = foldername + "/" + plot_filename
+    if len(external_label) > 5:
+        plot_label = external_label
+
     isItThere = os.path.isfile(reportfile)
     # now open the file
     stream_out = open(reportfile, mode='at')
     if not isItThere:
         # set up a table format order
         headerString = 'StartTime, TimeToMaxIOB, TimeToMaxCumInsulin, maxIOB, maxCumInsulin, ' + \
-                       'NightscoutNote'
+                       'NightscoutNote, ExternalLabel, PlotFilename'
         stream_out.write(headerString)
         stream_out.write('\n')
     stream_out.write(f"{begin_time},")
@@ -351,9 +347,18 @@ def main():
     stream_out.write(f"{maxIOB:6.2f},")
     stream_out.write(f"{maxCumInsulin:6.2f},")
     stream_out.write(f'"{test_designation}",')
+    stream_out.write(f'"{external_label}",')
+    stream_out.write(f'"{this_plotname}",')
     stream_out.write('\n')
     stream_out.close()
     print('  Row appended to ', reportfile)
+
+    # plot pandas dataframe containing Nightscout data
+    # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
+    # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
+    # TODO: add ability to plot more than one test on a given figure
+    generatePlot(this_plotname, plot_label, dfDeviceStatus, dfTreatments)
+    print(' *** plot created:     ', this_plotname)
 
 
 if __name__ == "__main__":
