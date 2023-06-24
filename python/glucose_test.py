@@ -198,9 +198,7 @@ def generatePlot(outFile, label, dfDeviceStatus, dfTreatments):
     #elapsed_time = end_time - start_time
     #bottom_ticks = np.arange(0, 21600, step=one_hr_in_sec)
 
-    plot_start_time = f"{start_time}"
-    print("start and end ", start_time, ", ", end_time)
-    plot_start_time = plot_start_time[0:-6]
+    plot_start_time = start_time.strftime("%Y-%m-%d %H:%M")
 
     title_string = (f'Analysis: {plot_start_time}\n{label}')
 
@@ -261,7 +259,7 @@ def generatePlot(outFile, label, dfDeviceStatus, dfTreatments):
 
 
 def main():
-    noisy=1
+    noisy=0
     number_of_args = len(sys.argv)-1
     print("number_of_args = ", number_of_args)
     reportfile="glucose_impulse_response.csv"
@@ -283,7 +281,8 @@ def main():
     
     devicestatus_filename = timestamp_id + "_devicestatus.txt"
     treatments_filename = timestamp_id + "_treatments.txt"
-    plot_filename = "plot_" + timestamp_id + ".png"
+    plotname = "plot_" + timestamp_id + ".png"
+    plot_filename = foldername + "/" + plotname
 
     if noisy:
         print("Script name:", script_name)
@@ -310,7 +309,9 @@ def main():
     # print(dfDeviceStatus)
     begin_time = dfDeviceStatus.iloc[0]['time']
     end_time = dfDeviceStatus.iloc[-1]['time']
-    print(begin_time, end_time)
+    begin_time_string=begin_time.strftime("%Y-%m-%d %H:%M")
+    end_time_string=end_time.strftime("%Y-%m-%d %H:%M")
+    print(begin_time_string, end_time_string)
     dfTreatments=dfTreatments[(dfTreatments['time'] > begin_time) & \
                               (dfTreatments['time'] < end_time)]
     if noisy:
@@ -323,13 +324,19 @@ def main():
     maxCumInsulin=dfTreatments['insulin_cumsum'].max()
     iobTimeDF=dfDeviceStatus[(dfDeviceStatus['IOB'] > (maxIOB-0.01))]
     iobTime=iobTimeDF.iloc[0]['time']
-    iobDeltaTime=iobTime - begin_time
+    iobDeltaTimeMinutes=round((iobTime - begin_time).seconds/60.0)
     ciTimeDF=dfTreatments[(dfTreatments['insulin_cumsum'] > (maxCumInsulin-0.01))]
     ciTime=ciTimeDF.iloc[0]['time']
-    ciDeltaTime=ciTime - begin_time
-    print(f'{begin_time}, {iobDeltaTime}, {ciDeltaTime}, {maxIOB:6.2f}, {maxCumInsulin:6.2f}, "{test_designation}"')
+    ciDeltaTimeMinutes=round((ciTime - begin_time).seconds/60.0)
 
-    this_plotname = foldername + "/" + plot_filename
+    headerString = 'StartTime, MinutesToMaxIOB, MinutesToMaxCumInsulin, maxIOB, maxCumInsulin, ' + \
+                       'NightscoutNote, ExternalLabel, PlotFilename'
+
+    print(headerString)
+    print(f'{begin_time_string}, {iobDeltaTimeMinutes}, {ciDeltaTimeMinutes}, \
+          {maxIOB:6.2f}, {maxCumInsulin:6.2f}, \
+             "{test_designation}", "{external_label}", {plotname}')
+
     if len(external_label) > 5:
         plot_label = external_label
 
@@ -338,18 +345,16 @@ def main():
     stream_out = open(reportfile, mode='at')
     if not isItThere:
         # set up a table format order
-        headerString = 'StartTime, TimeToMaxIOB, TimeToMaxCumInsulin, maxIOB, maxCumInsulin, ' + \
-                       'NightscoutNote, ExternalLabel, PlotFilename'
         stream_out.write(headerString)
         stream_out.write('\n')
-    stream_out.write(f"{begin_time},")
-    stream_out.write(f"{iobDeltaTime},")
-    stream_out.write(f"{ciDeltaTime},")
+    stream_out.write(f"{begin_time_string},")
+    stream_out.write(f"{iobDeltaTimeMinutes},")
+    stream_out.write(f"{ciDeltaTimeMinutes},")
     stream_out.write(f"{maxIOB:6.2f},")
     stream_out.write(f"{maxCumInsulin:6.2f},")
     stream_out.write(f'"{test_designation}",')
     stream_out.write(f'"{external_label}",')
-    stream_out.write(f'"{this_plotname}",')
+    stream_out.write(f'"{plotname}",')
     stream_out.write('\n')
     stream_out.close()
     print('  Row appended to ', reportfile)
@@ -358,8 +363,8 @@ def main():
     # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
     # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
     # TODO: add ability to plot more than one test on a given figure
-    generatePlot(this_plotname, plot_label, dfDeviceStatus, dfTreatments)
-    print(' *** plot created:     ', this_plotname)
+    generatePlot(plot_filename, plot_label, dfDeviceStatus, dfTreatments)
+    print(' *** plot created:     ', plot_filename)
 
 
 if __name__ == "__main__":
