@@ -4,7 +4,7 @@
 # Set up a google sheet to autogenerate download commands based on time stamps
 #   to create the devicestatus and treatments files
 # Command line arguments (no flexibility - order is fixed)
-# order of args: devicestatus treatments [optional: external_label] [optional: summary.csv filename]
+# order of args: path timestamp-code [optional: external_label] [optional: summary.csv filename]
 
 import sys
 import re
@@ -14,6 +14,17 @@ import os
 import pandas as pd
 import json
 import matplotlib.pyplot as plt
+
+
+def help(reportfile):
+    print("Usage:")
+    print("  python glucose_test.py arg1 arg2 [arg3] [arg4]")
+    print("    arg1 - path for data I/O")
+    print("    arg2 - timestamp identifier (used for I/O)")
+    print("       input: arg2_devicestatus.txt, arg2_treatments.txt")
+    print("       output: plot_arg2.png")
+    print("    arg3 - optional label, otherwise uses note in treatments")
+    print("    arg4 - optional output filename, otherwise uses", reportfile)
 
 
 # only function used from OmniLoopMessageParser - just copy it here
@@ -248,16 +259,6 @@ def generatePlot(outFile, label, dfDeviceStatus, dfTreatments):
     plt.savefig(outFile)
     plt.close(fig)
 
-
-def help(reportfile):
-    print("Usage:")
-    print("  python glucose_test.py arg1 arg2 [arg3] [arg4]")
-    print("    arg1 - path for data I/O")
-    print("    arg2 - timestamp identifier (used for I/O)")
-    print("       input: arg2_devicestatus.txt, arg2_treatments.txt")
-    print("       output: plot_arg2.png")
-    print("    arg3 - optional label, otherwise uses note in treatments")
-    print("    arg4 - optional output filename, otherwise uses", reportfile)
 
 def main():
     noisy=1
