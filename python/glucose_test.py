@@ -1,11 +1,10 @@
-# glucose_test_from_nightscout.py
-# stupid name - may change later
+# glucose_test.py
 # code is all in this file
 
 # Set up a google sheet to autogenerate download commands based on time stamps
 #   to create the devicestatus and treatments files
 # Command line arguments (no flexibility - order is fixed)
-# order of args: devicestatus treatments [optional: external_label] [optional: summary.csv filename]
+# order of args: path timestamp-code [optional: external_label] [optional: summary.csv filename]
 
 import sys
 import re
@@ -15,6 +14,17 @@ import os
 import pandas as pd
 import json
 import matplotlib.pyplot as plt
+
+
+def help(reportfile):
+    print("Usage:")
+    print("  python glucose_test.py arg1 arg2 [arg3] [arg4]")
+    print("    arg1 - path for data I/O")
+    print("    arg2 - timestamp identifier (used for I/O)")
+    print("       input: arg2_devicestatus.txt, arg2_treatments.txt")
+    print("       output: plot_arg2.png")
+    print("    arg3 - optional label, otherwise uses note in treatments")
+    print("    arg4 - optional output filename, otherwise uses", reportfile)
 
 
 # only function used from OmniLoopMessageParser - just copy it here
@@ -33,6 +43,8 @@ def read_raw_nightscout(filename):
     fp = open(filename, "r", encoding='UTF8')
     raw_content = fp.read()
     fp.close()
+    # this next bit could be done with jq as part of the shell script
+    # but is NOT done so now - change if decide to modify that
     # remove the beginning and ending []
     content = raw_content[1:-2]
     # break into separate json lines
@@ -179,16 +191,16 @@ def generatePlot(outFile, label, dfDeviceStatus, dfTreatments):
     #bottom_ticks = np.arange(0, day_in_sec+1, step=two_hr_in_sec)
     mkSize = 10
 
-    fig, axes = plt.subplots(nrow, ncol, figsize=(15, 7))
+    fig, axes = plt.subplots(nrow, ncol, figsize=(5, 7))
     start_time = dfDeviceStatus.iloc[0]['time']
     end_time = dfDeviceStatus.iloc[-1]['time']
     xRange = [start_time, end_time]
     #elapsed_time = end_time - start_time
     #bottom_ticks = np.arange(0, 21600, step=one_hr_in_sec)
 
-    print("start and end ", start_time, ", ", end_time)
+    plot_start_time = start_time.strftime("%Y-%m-%d %H:%M")
 
-    title_string = (f'Analysis: {start_time}  {label}')
+    title_string = (f'Analysis: {plot_start_time}\n{label}')
 
     print()
     print("Plot Title:")
@@ -240,7 +252,7 @@ def generatePlot(outFile, label, dfDeviceStatus, dfTreatments):
 
     plt.draw()
     plt.pause(0.001)
-    plt.pause(1)
+    plt.pause(5)
     # for use in interactive screen: plt.draw();plt.pause(0.001)
     plt.savefig(outFile)
     plt.close(fig)
@@ -248,16 +260,29 @@ def generatePlot(outFile, label, dfDeviceStatus, dfTreatments):
 
 def main():
     noisy=0
-    number_of_args = len(sys.argv)
-    if [ number_of_args == 4 ]:
-        external_label = ""
+    number_of_args = len(sys.argv)-1
+    print("number_of_args = ", number_of_args)
+    reportfile="glucose_impulse_response.csv"
+    # if insufficient arguments, provide help
+    if number_of_args < 2:
+        help(reportfile)
+        exit
     else:
-        external_label = sys.argv[0]
+        script_name = sys.argv[0]
+        foldername = sys.argv[1]
+        timestamp_id = sys.argv[2]
+    # optional arguments
+    external_label=""
     
-    script_name = sys.argv[0]
-    foldername = sys.argv[1]
-    devicestatus_filename = sys.argv[2]
-    treatments_filename = sys.argv[3]
+    if number_of_args >= 3:
+        external_label = sys.argv[3]
+    if number_of_args == 4:
+        reportfile = sys.argv[4]
+    
+    devicestatus_filename = timestamp_id + "_devicestatus.txt"
+    treatments_filename = timestamp_id + "_treatments.txt"
+    plotname = "plot_" + timestamp_id + ".png"
+    plot_filename = foldername + "/" + plotname
 
     if noisy:
         print("Script name:", script_name)
@@ -265,6 +290,7 @@ def main():
         print("devicestatus_filename:", devicestatus_filename)
         print("treatments_filename:", treatments_filename)
         print("external_label:", external_label)
+        print("reportfile:", reportfile)
 
     devicestatus_filename = foldername + "/" + devicestatus_filename
     content1 = read_raw_nightscout(devicestatus_filename)
@@ -283,7 +309,9 @@ def main():
     # print(dfDeviceStatus)
     begin_time = dfDeviceStatus.iloc[0]['time']
     end_time = dfDeviceStatus.iloc[-1]['time']
-    print(begin_time, end_time)
+    begin_time_string=begin_time.strftime("%Y-%m-%d %H:%M")
+    end_time_string=end_time.strftime("%Y-%m-%d %H:%M")
+    print(begin_time_string, end_time_string)
     dfTreatments=dfTreatments[(dfTreatments['time'] > begin_time) & \
                               (dfTreatments['time'] < end_time)]
     if noisy:
@@ -291,41 +319,52 @@ def main():
         print(dfTreatments)
     dfTreatments['insulin_cumsum'] = dfTreatments['insulin'].cumsum()
 
-    # plot pandas dataframe containing Nightscout data
-    thisOutFile = foldername + "/" + "preliminary_plot_20230615-1230.png"
-    #label="Enter status for RC/IRC AB: Constant/GBAF"
-    generatePlot(thisOutFile, test_designation, dfDeviceStatus, dfTreatments)
-    print(' *** plot created:     ', thisOutFile)
+ 
     maxIOB=dfDeviceStatus['IOB'].max()
     maxCumInsulin=dfTreatments['insulin_cumsum'].max()
     iobTimeDF=dfDeviceStatus[(dfDeviceStatus['IOB'] > (maxIOB-0.01))]
     iobTime=iobTimeDF.iloc[0]['time']
-    iobDeltaTime=iobTime - begin_time
+    iobDeltaTimeMinutes=round((iobTime - begin_time).seconds/60.0)
     ciTimeDF=dfTreatments[(dfTreatments['insulin_cumsum'] > (maxCumInsulin-0.01))]
     ciTime=ciTimeDF.iloc[0]['time']
-    ciDeltaTime=ciTime - begin_time
-    print(f'{begin_time}, {iobDeltaTime}, {ciDeltaTime}, {maxIOB:6.2f}, {maxCumInsulin:6.2f}, "{test_designation}"')
+    ciDeltaTimeMinutes=round((ciTime - begin_time).seconds/60.0)
 
-    reportfile="glucose_impulse_response.csv"
+    headerString = 'StartTime, MinutesToMaxIOB, MinutesToMaxCumInsulin, maxIOB, maxCumInsulin, ' + \
+                       'NightscoutNote, ExternalLabel, PlotFilename'
+
+    print(headerString)
+    print(f'{begin_time_string}, {iobDeltaTimeMinutes}, {ciDeltaTimeMinutes}, \
+          {maxIOB:6.2f}, {maxCumInsulin:6.2f}, \
+             "{test_designation}", "{external_label}", {plotname}')
+
+    if len(external_label) > 5:
+        plot_label = external_label
+
     isItThere = os.path.isfile(reportfile)
     # now open the file
     stream_out = open(reportfile, mode='at')
     if not isItThere:
         # set up a table format order
-        headerString = 'StartTime, TimeToMaxIOB, TimeToMaxCumInsulin, maxIOB, maxCumInsulin, ' + \
-                       'NightscoutNote'
         stream_out.write(headerString)
         stream_out.write('\n')
-    stream_out.write(f"{begin_time},")
-    stream_out.write(f"{iobDeltaTime},")
-    stream_out.write(f"{ciDeltaTime},")
+    stream_out.write(f"{begin_time_string},")
+    stream_out.write(f"{iobDeltaTimeMinutes},")
+    stream_out.write(f"{ciDeltaTimeMinutes},")
     stream_out.write(f"{maxIOB:6.2f},")
     stream_out.write(f"{maxCumInsulin:6.2f},")
     stream_out.write(f'"{test_designation}",')
+    stream_out.write(f'"{external_label}",')
+    stream_out.write(f'"{plotname}",')
     stream_out.write('\n')
     stream_out.close()
     print('  Row appended to ', reportfile)
 
+    # plot pandas dataframe containing Nightscout data
+    # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
+    # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
+    # TODO: add ability to plot more than one test on a given figure
+    generatePlot(plot_filename, plot_label, dfDeviceStatus, dfTreatments)
+    print(' *** plot created:     ', plot_filename)
 
 
 if __name__ == "__main__":
