@@ -81,7 +81,7 @@ def plot_single_test(outFile, label, dfDeviceStatus, dfTreatments):
 
     plt.draw()
     plt.pause(0.001)
-    plt.pause(5)
+    plt.pause(1)
     # for use in interactive screen: plt.draw();plt.pause(0.001)
     plt.savefig(outFile)
     plt.close(fig)

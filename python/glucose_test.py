@@ -76,7 +76,15 @@ def main():
     content2 = read_raw_nightscout(treatmentsFilename)
     [nightscoutNote, dfTreatments] = extract_treatments(content2)
 
-    # use glucose values > 100 as markers for start and end of test.
+    # the first and last glucose should be 110 or the times were not correct
+    firstGlucose=dfDeviceStatus.iloc[0]['glucose']
+    lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
+    if not (firstGlucose == 110 and lastGlucose == 110):
+        print("times are not correct - did not capture the whole test")
+        print("First and Last Glucose:", firstGlucose, lastGlucose)
+        exit(0)
+
+    # use glucose values > 110 as markers for start and end of test.
     dfDeviceStatus=dfDeviceStatus[dfDeviceStatus['glucose'] > 110]
     startTime = dfDeviceStatus.iloc[0]['time']
     endTime = dfDeviceStatus.iloc[-1]['time']
