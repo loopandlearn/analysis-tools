@@ -31,9 +31,9 @@ def help(reportFilename):
 
 def main():
     # 0 = none, 1 = a little verbose, 2 = very verbose
-    verboseFlag=1 
+    verboseFlag=0 
 
-    testDict = {}
+    testIO = {}
     numArgs = len(sys.argv)-1
     reportFilename="glucose_impulse_response.csv"
     # if insufficient arguments, provide help
@@ -57,13 +57,17 @@ def main():
     plotname = "plot_" + timestamp_id + ".png"
     plotFilename = foldername + "/" + plotname
 
-    if verboseFlag == 2:
-        print("scriptname:", scriptname)
-        print("foldername:", foldername)
-        print("devicestatusFilename:", devicestatusFilename)
-        print("treatmentsFilename:", treatmentsFilename)
-        print("externalLabel:", externalLabel)
-        print("reportFilename:", reportFilename)
+    # begin filling in testIO here
+    testIO = {"scriptname": scriptname,
+              "foldername": foldername,
+              "devicestatusFilename": devicestatusFilename,
+              "treatmentsFilename": treatmentsFilename,
+              "externalLabel": externalLabel,
+              "reportFilename": reportFilename,
+              "plotname": plotname}
+
+    if verboseFlag == 1:
+        print_dict(testIO)
 
     devicestatusFilename = foldername + "/" + devicestatusFilename
     content1 = read_raw_nightscout(devicestatusFilename)
@@ -90,46 +94,34 @@ def main():
     endTime = dfDeviceStatus.iloc[-1]['time']
     startTimeString=startTime.strftime("%Y-%m-%d %H:%M")
     endTimeString=endTime.strftime("%Y-%m-%d %H:%M")
-    dfTreatments=dfTreatments[(dfTreatments['time'] > startTime) & \
-                              (dfTreatments['time'] < endTime)]
+
+    # adjust time in case time stamps don't match exactly
+    deltaToCheck = pd.to_timedelta(10.0, unit='sec')
+    dfTreatments=dfTreatments[(dfTreatments['time'] >= (startTime-deltaToCheck)) & \
+                              (dfTreatments['time'] <= (endTime+deltaToCheck))]
+    # perform cumsum only after limiting time in dfTreatments
+    dfTreatments['insulinCumsum'] = dfTreatments['insulin'].cumsum()
+
+    # add to testIO:
+    testIO['startTimeString']=startTimeString
+    testIO['endTimeString']=endTimeString
+    testIO['nightscoutNote']=nightscoutNote
+
     if verboseFlag == 2:
         print(startTimeString, endTimeString)
         print(" *** dfTreatments:")
         print(dfTreatments)
-    dfTreatments['insulinCumsum'] = dfTreatments['insulin'].cumsum()
- 
-    # IOB stats
-    maxIOB=dfDeviceStatus['IOB'].max()
-    iobTimeDF=dfDeviceStatus[(dfDeviceStatus['IOB'] > (maxIOB-0.01))]
-    iobTime=iobTimeDF.iloc[0]['time']
-    iobDeltaTimeMinutes=round((iobTime - startTime).seconds/60.0)
-    # cumulative insulin stats
-    maxCumInsulin=dfTreatments['insulinCumsum'].max()
-    ciTimeDF=dfTreatments[(dfTreatments['insulinCumsum'] > (maxCumInsulin-0.01))]
-    ciTime=ciTimeDF.iloc[0]['time']
-    ciDeltaTimeMinutes=round((ciTime - startTime).seconds/60.0)
 
-    headerString = 'StartTime, MinutesToMaxIOB, MinutesToMaxCumInsulin, maxIOB, maxCumInsulin, ' + \
-                       'ExternalLabel, NightscoutNote, Plotname'
     
-    # set up a dictionary of the test results
-    testDict = {'headerString': headerString,
-                'startTimeString': startTimeString,
-                'iobDeltaTimeMinutes': iobDeltaTimeMinutes,
-                'ciDeltaTimeMinutes': ciDeltaTimeMinutes,
-                'maxIOB': maxIOB,
-                'maxCumInsulin': maxCumInsulin,
-                'externalLabel': externalLabel,
-                'nightscoutNote': nightscoutNote,
-                'plotname': plotname }
-
-    if verboseFlag == 1:
-        print_dict(testDict)
+    # add to testIO:
+    testIO['startTimeString']=startTimeString
+    testIO['endTimeString']=endTimeString    
+ 
 
     if len(externalLabel) > 5:
         plotLabel = externalLabel
 
-    report_test_results(testDict, reportFilename)
+    resultsDict = report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments)
 
     # plot pandas dataframe containing Nightscout data
     # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
@@ -137,6 +129,7 @@ def main():
     # TODO: add ability to plot more than one test on a given figure
     plot_single_test(plotFilename, plotLabel, dfDeviceStatus, dfTreatments)
     print(' *** plot created:     ', plotFilename)
+    print(' END of Analysis\n')
 
 
 if __name__ == "__main__":
