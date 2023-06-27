@@ -24,12 +24,16 @@ def read_test_list(filename):
         print("filename in read_test_list = ", filename)
     fp = open(filename, "r")
     testList = []
+    testLabel = []
     content = fp.read()
         # split by newline:
     linesRaw = content.splitlines()
     if verboseFlag:
         print("\nlinesRaw has ", len(linesRaw), " lines")
     for line in linesRaw:
-        testList.append(line)
+        id, label= line.split(',', 2)
+        print(id, label)
+        testList.append(id)
+        testLabel.append(label)
 
-    return testList
+    return testList, testLabel
