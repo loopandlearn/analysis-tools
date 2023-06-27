@@ -48,8 +48,9 @@ def report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments):
                 'nightscoutNote': testIO['nightscoutNote'],
                 'plotname': testIO['plotname'] }
 
-    write_test_result(reportFilename, resultsDict)
-    print('  Row appended to ', reportFilename)
+    if len(reportFilename) > 1:
+        write_test_result(reportFilename, resultsDict)
+        print('  Row appended to ', reportFilename)
 
     return resultsDict
 
