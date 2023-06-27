@@ -28,7 +28,7 @@ def add_delta_time_column_in_hours(dataframe):
 def plot_initiate():
     nrow = 3
     ncol = 1
-    fig, axes = plt.subplots(nrow, ncol, figsize=(7, 7), sharex='col')
+    fig, axes = plt.subplots(nrow, ncol, figsize=(5, 7), sharex='col')
     return fig, axes
 
 
@@ -77,7 +77,7 @@ def plot_format(fig, axes, testLabel, titleString):
         idx += 1
 
     # set limits for BG (always in mg/dl)
-    axes[0].set_ylabel("glucose")
+    axes[0].set_ylabel("Glucose")
     axes[0].set_xlabel("hours")
     bg_ylim = axes[0].get_ylim()
     a = min(bg_ylim[0], 0)
@@ -100,12 +100,11 @@ def plot_format(fig, axes, testLabel, titleString):
     axes[2].set_ylim([a, b])
 
     idx = 1
-    anchorTuple = [1.11, 1.0]
-    # no legend for Glucose (all the same)
-    axes[0].legend('_')
-    while idx < naxes:
-        axes[idx].legend(testLabel, loc='right', bbox_to_anchor=anchorTuple, framealpha=1.0)
-        idx += 1
+    anchorTuple = [1.05, 1.0]
+    # Only need one legend for the plot
+    axes[0].legend('')
+    axes[1].legend(testLabel, loc='right', bbox_to_anchor=anchorTuple, framealpha=1.0)
+    axes[2].legend('')
 
     plt.draw()
     plt.pause(0.001)
