@@ -12,14 +12,14 @@ def extract_devicestatus(content):
     dfDeviceStatus = pd.DataFrame({})
 
     # split by newline:
-    lines_raw = content.splitlines()
+    linesRaw = content.splitlines()
  
-    noisy = 0
-    if noisy:
+    verboseFlag = 0
+    if verboseFlag:
         print("\n>>>   call to extract_devicestatus")
         print("first 256 characters : ", content[:256])
         print("\nlast  256 characters : ", content[-256:])
-        print("\nlines_raw has ", len(lines_raw), " lines")
+        print("\nlinesRaw has ", len(linesRaw), " lines")
 
     # parse the devicedata output
     jdx=0
@@ -29,10 +29,10 @@ def extract_devicestatus(content):
     glucose_time=[]
     glucose=[]
     recommendedBolus=[]
-    for line in lines_raw:
+    for line in linesRaw:
         try:
             json_dict = json.loads(line)
-            if (jdx < 2 & noisy):
+            if (jdx < 2 & verboseFlag):
                 print('\n *** jdx = ', jdx)
                 printDict(json_dict)
             loop_time.append(json_dict['loop']['timestamp'][0:-1]) # remove Z
@@ -41,7 +41,7 @@ def extract_devicestatus(content):
             glucose_time.append(json_dict['loop']['predicted']['startDate'])
             glucose.append(json_dict['loop']['predicted']['values'][0])
             recommendedBolus.append(json_dict['loop']['recommendedBolus'])
-            if noisy:
+            if verboseFlag:
                 print("\n *** jdx = ", jdx)
                 print(loop_time[jdx], glucose_time[jdx], iob_time[jdx], glucose[jdx], iob[jdx])
             jdx=jdx+1
@@ -74,14 +74,14 @@ def extract_treatments(content):
     test_designation = "Not Provided"
 
     # split by newline:
-    lines_raw = content.splitlines()
+    linesRaw = content.splitlines()
  
-    noisy = 0
-    if noisy:
+    verboseFlag = 0
+    if verboseFlag:
         print("\n>>>   call to extract_treatments")
         print("first 256 characters : ", content[:256])
         print("\nlast  256 characters : ", content[-256:])
-        print("\nlines_raw has ", len(lines_raw), " lines")
+        print("\nlinesRaw has ", len(linesRaw), " lines")
 
     # parse the devicedata output
     tb_string = 'Temp Basal'
@@ -91,10 +91,10 @@ def extract_treatments(content):
     jdx=0
     timestamp=[]
     insulin=[]
-    for line in lines_raw:
+    for line in linesRaw:
         try:
             json_dict = json.loads(line)
-            #if (noisy & jdx < 2):
+            #if (verboseFlag & jdx < 2):
             #    print('\n *** jdx = ', jdx)
             #    printDict(json_dict)
             
@@ -112,7 +112,7 @@ def extract_treatments(content):
                 print(json_dict['created_at'], json_dict['notes'])
             else:
                 print(json_dict['created_at'], eventType)
-            if noisy:
+            if verboseFlag:
                 print("\n *** jdx = ", jdx)
                 print(timestamp[jdx], insulin[jdx])
             jdx=jdx+1

@@ -3,9 +3,9 @@
 
 
 def read_raw_nightscout(filename):
-    noisy = 0
-    if noisy:
-        print("filename in read_json_file = ", filename)
+    verboseFlag = 0
+    if verboseFlag:
+        print("filename in read_raw_nightscout = ", filename)
     fp = open(filename, "r", encoding='UTF8')
     raw_content = fp.read()
     fp.close()
@@ -16,3 +16,24 @@ def read_raw_nightscout(filename):
     # break into separate json lines
     content = content.replace(',{"_id', '\n{"_id')
     return content
+
+
+def read_test_list(filename):
+    verboseFlag = 1
+    if verboseFlag:
+        print("filename in read_test_list = ", filename)
+    fp = open(filename, "r")
+    testList = []
+    testLabel = []
+    content = fp.read()
+        # split by newline:
+    linesRaw = content.splitlines()
+    if verboseFlag:
+        print("\nlinesRaw has ", len(linesRaw), " lines")
+    for line in linesRaw:
+        id, label= line.split(',', 2)
+        print(id, label)
+        testList.append(id)
+        testLabel.append(label)
+
+    return testList, testLabel
