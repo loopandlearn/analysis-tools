@@ -32,6 +32,7 @@ def help(reportFilename):
 def main():
     # 0 = none, 1 = a little verbose, 2 = very verbose
     verboseFlag=0 
+    duration = 5 # plot all tests with fixed hour duration
 
     testIO = {}
     numArgs = len(sys.argv)-1
@@ -127,7 +128,7 @@ def main():
     # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
     # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
     # TODO: add ability to plot more than one test on a given figure
-    plot_single_test(plotFilename, plotLabel, dfDeviceStatus, dfTreatments)
+    plot_single_test(plotFilename, plotLabel, duration, startTime, dfDeviceStatus, dfTreatments)
     print(' *** plot created:     ', plotFilename)
     print(' END of Analysis\n')
 

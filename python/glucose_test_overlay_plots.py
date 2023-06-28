@@ -57,7 +57,6 @@ def main():
     print(' *** plot opened:     ', plotFilename)
     print(testLabel)
 
-    colorIdx = 0
     testIdx = 0
 
     for test in testList:
@@ -131,7 +130,7 @@ def main():
             print_dict(resultsDict)
 
         [fig, axes] = plot_one(fig, axes, testIdx, 
-                               duration, dfDeviceStatus, dfTreatments)
+                               duration, startTime, dfDeviceStatus, dfTreatments)
         testIdx += 1
 
     # plot pandas dataframe containing Nightscout data
