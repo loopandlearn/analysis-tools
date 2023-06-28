@@ -153,7 +153,7 @@ def main():
 
     # plot pandas dataframe containing Nightscout data
     # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
-    titleString = f'Overlay {testIdx+1} Algorithm Experiments\nFor Same Input Glucose Pattern'
+    titleString = f'Overlay {testIdx} Algorithm Experiments\nFor Same Input Glucose Pattern'
     titleString = f'{titleString}\n{plotSubtitle}'
     # do not include legends with more than 5 plots
     if testIdx > 4:
