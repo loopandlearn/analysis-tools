@@ -35,8 +35,8 @@ def plot_initiate():
 def plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
     colorList = ['black', 'magenta', 'cyan', 'green']
     styleList = ['-', '--', '-.', ':']
-    color = colorList[nPlot%len(colorList)]
-    style = styleList[nPlot%len(styleList)]
+    color = colorList[idx%len(colorList)]
+    style = styleList[idx%len(styleList)]
     xRange = [0, duration]
     bottom_ticks = np.arange(0, duration, step=1)
     dfDeviceStatus = add_delta_time_column_in_hours(startTime, dfDeviceStatus)
@@ -115,7 +115,7 @@ def plot_format(fig, axes, testLabel, titleString):
 def plot_save(outFile, fig):
     plt.draw()
     plt.pause(0.001)
-    plt.pause(10)
+    plt.pause(2)
     plt.savefig(outFile)
     plt.close(fig)
     return
