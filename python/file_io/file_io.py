@@ -19,7 +19,7 @@ def read_raw_nightscout(filename):
 
 
 def read_test_list(filename):
-    verboseFlag = 1
+    verboseFlag = 0
     if verboseFlag:
         print("filename in read_test_list = ", filename)
     fp = open(filename, "r")
@@ -32,7 +32,8 @@ def read_test_list(filename):
         print("\nlinesRaw has ", len(linesRaw), " lines")
     for line in linesRaw:
         id, label= line.split(',', 2)
-        print(id, label)
+        if verboseFlag:
+            print(id, label)
         testList.append(id)
         testLabel.append(label)
 

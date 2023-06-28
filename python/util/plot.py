@@ -25,6 +25,13 @@ def add_delta_time_column_in_hours(startTime, dataframe):
     return dataframe
 
 
+def select_non_zero_diffs(dataframe, columnString, epsilon):
+    # skip time stamps where the column of interest does not change
+    dataframe['deltaValue'] = dataframe[columnString].diff()
+    dataframe=dataframe[dataframe['deltaValue'].abs() > epsilon]
+    return dataframe
+
+
 def plot_initiate():
     nrow = 3
     ncol = 1
@@ -33,7 +40,8 @@ def plot_initiate():
 
 
 def plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
-    colorList = ['black', 'magenta', 'cyan', 'green']
+    colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
+                 'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
     styleList = ['-', '--', '-.', ':']
     color = colorList[idx%len(colorList)]
     style = styleList[idx%len(styleList)]
@@ -42,12 +50,21 @@ def plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
     dfDeviceStatus = add_delta_time_column_in_hours(startTime, dfDeviceStatus)
     dfTreatments = add_delta_time_column_in_hours(startTime, dfTreatments)
 
+    epsilon = 0.06
+    dfIOB = select_non_zero_diffs(dfDeviceStatus, 'IOB', epsilon)
+    epsilon = 0.02
+    dfInsulinCumSum = select_non_zero_diffs(dfTreatments, 'insulinCumsum', epsilon)
+
+    print(f"rows before/after filter: " + \
+           f"{len(dfDeviceStatus)}, {len(dfTreatments)}, " + \
+           f"{len(dfIOB)}, {len(dfInsulinCumSum)}")
+
     # always plot glucose as black - plot each to ensure no outliers
-    dfDeviceStatus.plot(x='elapsedHours', y='glucose', c='black', ax=axes[0],
+    dfDeviceStatus.plot(x='elapsedHours', y='glucose', c=color, ax=axes[0],
                         style=style, xlim=xRange, xticks=bottom_ticks)
-    dfDeviceStatus.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1], 
+    dfIOB.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1], 
                         style=style, xlim=xRange, xticks=bottom_ticks)
-    dfTreatments.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2], 
+    dfInsulinCumSum.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2], 
                       style=style, xlim=xRange, xticks=bottom_ticks)
     plt.draw()
     plt.pause(0.001)
@@ -55,7 +72,7 @@ def plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
     return fig, axes
 
 
-def plot_format(fig, axes, testLabel, titleString):
+def plot_format(fig, axes, testLabel, titleString, legendFlag):
     naxes = 3
 
 
@@ -103,7 +120,10 @@ def plot_format(fig, axes, testLabel, titleString):
     anchorTuple = [1.05, 1.0]
     # Only need one legend for the plot
     axes[0].legend('')
-    axes[1].legend(testLabel, loc='right', bbox_to_anchor=anchorTuple, framealpha=1.0)
+    if legendFlag == 1:
+        axes[1].legend(testLabel, loc='right', bbox_to_anchor=anchorTuple, framealpha=1.0)
+    else:
+        axes[1].legend('')
     axes[2].legend('')
 
     plt.draw()
@@ -121,12 +141,12 @@ def plot_save(outFile, fig):
     return
 
 
-def plot_single_test(outFile, label, duration, startTime, dfDeviceStatus, dfTreatments):
+def plot_single_test(outFile, label, legendFlag, duration, startTime, dfDeviceStatus, dfTreatments):
     [fig, axes] = plot_initiate()
     idx = 0
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
     [fig, axes] = plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments)
-    [fig, axes] = plot_format(fig, axes, "", titleString)
+    [fig, axes] = plot_format(fig, axes, "", titleString, legendFlag)
     plot_save(outFile, fig)
     return
 

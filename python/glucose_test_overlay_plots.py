@@ -1,8 +1,14 @@
 # glucose_test_overlay_plots.py
-#   function names use undercase separated by underscore: function_name
-#   variable name use camel case: variableName
+#   Purpose: accept input text file of tests to overlay on a common plot
+#            overlayID is used to automatically create the input filename
+#                      and output plot name
+#            plotSubtitle   if supplied, added to chart title
+#            legendOff  if any arg is provided, no legends are plotted
 
 # see also glucose_test.py
+
+#   function names use undercase separated by underscore: function_name
+#   variable name use camel case: variableName
 
 import sys
 import numpy as np
@@ -24,9 +30,13 @@ def help():
     print("Usage:")
     print("  python glucose_test_overlay_plots.py arg1 arg2 arg3")
     print("    arg1 - path for data I/O")
-    print("    arg2 - desired plot filename")
-    print("    arg3 - text file with list of identifiers")
+    print("    arg2 - overlayID - see below")
+    print("    arg3 - plotSubtitle - if provided and not empty string")
+    print("    arg4 - legendFlag - if provided, legends are not shown\n")
+    print("           legends are not shown if > 5 test are overlaid\n")
+    print(" input_for_arg2.txt : text file with list of identifiers")
     print("       each identifier is used to read in data and overlay on a single plot")
+    print(" plot_overlay_arg2.png : output filename\n\n")
 
 
 def main():
@@ -39,23 +49,33 @@ def main():
     # if insufficient arguments, provide help
     if numArgs < 2:
         help()
-        exit
-    else:
-        scriptname = sys.argv[0]
-        foldername = sys.argv[1]
-        plotname = sys.argv[2]
-        inputname = sys.argv[3]
+        exit(0)
+
+    # assign required arguments
+    foldername = sys.argv[1]
+    overlayID = sys.argv[2]
+
+    # default values for optional arguments
+    plotSubtitle = ""
+    legendFlag = 1
+    if numArgs >= 3:
+        plotSubtitle = sys.argv[3]
+    
+    if numArgs == 4:
+        legendFlag = 0
+        print("changed legendFlag to ", legendFlag)
+
+    inputname = f'input_for_{overlayID}.txt'
+    plotname = f'plot_overlay_{overlayID}.png'
     
     plotFilename = foldername + "/" + plotname
     inputFilename = foldername + "/" + inputname
     [testList, testLabel] = read_test_list(inputFilename)
     if len(testList) < 1:
         print("no tests listed in ", inputFilename)
-        exit
+        exit(1)
 
     [fig, axes] = plot_initiate()
-    print(' *** plot opened:     ', plotFilename)
-    print(testLabel)
 
     testIdx = 0
 
@@ -64,7 +84,7 @@ def main():
         devicestatusFilename = test + "_devicestatus.txt"
         treatmentsFilename = test + "_treatments.txt"
         externalLabel = testLabel[testIdx]
-        testIO = {"scriptname": scriptname,
+        testIO = {
                 "foldername": foldername,
                 "devicestatusFilename": devicestatusFilename,
                 "treatmentsFilename": treatmentsFilename,
@@ -118,12 +138,10 @@ def main():
             print(startTimeString, endTimeString)
             print(" *** dfTreatments:")
             print(dfTreatments)
-
         
         # add to testIO:
         testIO['startTimeString']=startTimeString
         testIO['endTimeString']=endTimeString    
-    
 
         resultsDict = report_test_results("", testIO, dfDeviceStatus, dfTreatments)
         if verboseFlag:
@@ -134,11 +152,13 @@ def main():
         testIdx += 1
 
     # plot pandas dataframe containing Nightscout data
-    # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
     # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
-    # TODO: add ability to plot more than one test on a given figure
-    titleString = f'Overlay Algorithm Experiment Settings\nFor Same Input Glucose Pattern'
-    [fig, axes] = plot_format(fig, axes, testLabel, titleString)
+    titleString = f'Overlay {testIdx+1} Algorithm Experiments\nFor Same Input Glucose Pattern'
+    titleString = f'{titleString}\n{plotSubtitle}'
+    # do not include legends with more than 5 plots
+    if testIdx > 4:
+        legendFlag = 0
+    [fig, axes] = plot_format(fig, axes, testLabel, titleString, legendFlag)
     plot_save(plotFilename, fig)
     print(' END of plot overlay test\n')
 
