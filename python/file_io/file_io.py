@@ -38,3 +38,28 @@ def read_test_list(filename):
         testLabel.append(label)
 
     return testList, testLabel
+
+
+def read_test_list_scale(filename):
+    verboseFlag = 0
+    if verboseFlag:
+        print("filename in read_test_list = ", filename)
+    fp = open(filename, "r")
+    testList = []
+    testLabel = []
+    testScale = []
+    content = fp.read()
+        # split by newline:
+    linesRaw = content.splitlines()
+    if verboseFlag:
+        print("\nlinesRaw has ", len(linesRaw), " lines")
+    for line in linesRaw:
+        id, label, scale= line.split(',', 3)
+        scaleFactor = float(scale)
+        if verboseFlag:
+            print(id, label, scaleFactor)
+        testList.append(id)
+        testLabel.append(label)
+        testScale.append(scaleFactor)
+
+    return testList, testLabel, testScale

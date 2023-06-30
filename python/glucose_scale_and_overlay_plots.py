@@ -1,11 +1,12 @@
-# glucose_test_overlay_plots.py
+# glucose_scale_and_overlay_plots.py
+# copy from glucose_test_overlay_plots and allow a scale factor
+#   to do a quick and dirty ISF vs IRC plot for Pete
+#
 #   Purpose: accept input text file of tests to overlay on a common plot
 #            overlayID is used to automatically create the input filename
 #                      and output plot name
 #            plotSubtitle   if supplied, added to chart title
 #            legendOff  if any arg is provided, no legends are plotted
-
-# see also glucose_test.py
 
 #   function names use undercase separated by underscore: function_name
 #   variable name use camel case: variableName
@@ -17,6 +18,7 @@ from analysis.analysis import extract_devicestatus
 from analysis.analysis import extract_treatments
 from file_io.file_io import read_raw_nightscout
 from file_io.file_io import read_test_list
+from file_io.file_io import read_test_list_scale
 from util.report import report_test_results
 #from util.plot import plot_single_test
 from util.plot import plot_initiate
@@ -36,7 +38,8 @@ def help():
     print("           legends are not shown if > 5 test are overlaid\n")
     print(" input_for_arg2.txt : text file with list of identifiers")
     print("       each identifier is used to read in data and overlay on a single plot")
-    print(" plot_overlay_arg2.png : output filename\n\n")
+    print(" plot_overlay_arg2.png : output filename")
+    print(" scale factor (as if ISF is changed)\n\n")
 
 
 def main():
@@ -70,7 +73,7 @@ def main():
     
     plotFilename = foldername + "/" + plotname
     inputFilename = foldername + "/" + inputname
-    [testList, testLabel] = read_test_list(inputFilename)
+    [testList, testLabel, testScale] = read_test_list_scale(inputFilename)
     if len(testList) < 1:
         print("no tests listed in ", inputFilename)
         exit(1)
@@ -96,9 +99,15 @@ def main():
         if verboseFlag == 1:
             print_dict(testIO)
 
+        scaleFactor = testScale[testIdx]
         devicestatusFilename = foldername + "/" + devicestatusFilename
         content1 = read_raw_nightscout(devicestatusFilename)
         dfDeviceStatus = extract_devicestatus(content1)
+
+        # scale IOB and adjust label
+        dfDeviceStatus['IOB'] = dfDeviceStatus['IOB'].mul(scaleFactor)
+        testLabel[testIdx] = f'{testLabel[testIdx]} x {scaleFactor:4.2f}'
+
         if verboseFlag == 2:
             print(" *** dfDeviceStatus:")
             print(dfDeviceStatus)
@@ -155,9 +164,10 @@ def main():
     # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
     titleString = f'Overlay {testIdx} Algorithm Experiments\nFor Same Input Glucose Pattern'
     titleString = f'{titleString}\n{plotSubtitle}'
-    # do not include legends with more than 5 plots
+    # do not include legends with more than 6 plots
     if testIdx > 6:
         legendFlag = 0
+
     [fig, axes] = plot_format(fig, axes, testLabel, titleString, legendFlag)
     plot_save(plotFilename, fig)
     print(' END of plot overlay test\n')
