@@ -135,7 +135,7 @@ def plot_format(fig, axes, testLabel, titleString, legendFlag):
 def plot_save(outFile, fig):
     plt.draw()
     plt.pause(0.001)
-    plt.pause(2)
+    plt.pause(1)
     plt.savefig(outFile)
     plt.close(fig)
     return
@@ -150,3 +150,42 @@ def plot_single_test(outFile, label, legendFlag, duration, startTime, dfDeviceSt
     plot_save(outFile, fig)
     return
 
+def plot_glucose(outFile, label, legendFlag, duration, startTime, dfDeviceStatus):
+    [fig, axes] = plot_initiate_glucose()
+    oneHrInSec = 3600.0
+    if duration == 0:
+        duration= (dfDeviceStatus.iloc[-1]['time']- 
+                   dfDeviceStatus.iloc[0]['time']).total_seconds()/oneHrInSec
+    idx = 0
+    titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
+    [fig, axes] = plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus)
+    #[fig, axes] = plot_format(fig, axes, "", titleString, legendFlag)
+    plot_save(outFile, fig)
+    return
+
+
+def plot_initiate_glucose():
+    nrow = 2
+    ncol = 1
+    fig, axes = plt.subplots(nrow, ncol, figsize=(5, 7), sharex='col')
+    return fig, axes
+
+
+def plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus):
+    colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
+                 'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
+    styleList = ['-', '--', '-.', ':']
+    color = colorList[idx%len(colorList)]
+    style = styleList[idx%len(styleList)]
+    xRange = [0, duration]
+    bottom_ticks = np.arange(0, duration, step=1)
+    dfDeviceStatus = add_delta_time_column_in_hours(startTime, dfDeviceStatus)
+
+    dfDeviceStatus.plot(x='elapsedHours', y='glucose', c=color, ax=axes[0],
+                        style=style, xlim=xRange, xticks=bottom_ticks)
+    dfDeviceStatus.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1],
+                        style=style, xlim=xRange, xticks=bottom_ticks)
+    plt.draw()
+    plt.pause(0.001)
+
+    return fig, axes

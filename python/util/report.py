@@ -81,3 +81,30 @@ def write_test_result(reportFilename, resultsDict):
     stream_out.write(f"{resultsDict['plotname']}")
     stream_out.write('\n')
     stream_out.close()
+
+
+def create_glucose_file(dataframe, reportFile):
+    startTime = dataframe.iloc[0]['time']
+    startGlucose = dataframe.iloc[0]['glucose']
+    stream_out = open(reportFile, mode='wt')
+    stream_out.write(f"{startGlucose}\n")
+    cycleTime = 290 # sec between values
+    haltAtGlucose = 120
+
+    previousTime = startTime
+    idx = 1
+    for index, row in dataframe.iterrows():
+        # change to time
+        timeStamp = row['time']
+        glucose = row['glucose']
+        if glucose > haltAtGlucose:
+            print(f"quit at {timeStamp} with glucose of {glucose}")
+            break
+        elapsedSec = (timeStamp-previousTime).total_seconds()
+        if elapsedSec > cycleTime:
+            stream_out.write(f"{glucose}\n")
+            previousTime = timeStamp
+            idx += 1
+
+    stream_out.close()
+    return idx
