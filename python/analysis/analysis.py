@@ -64,6 +64,8 @@ def extract_devicestatus(content):
     # nightscout data downloaded in reverse time
     # dfDeviceStatus = tmpDF.sort_values(by="time")
     dfDeviceStatus = tmpDF.sort_index(ascending=False)
+    # reindex the dataframe
+    dfDeviceStatus = dfDeviceStatus.reset_index(drop=True)
 
     return dfDeviceStatus
 
@@ -133,11 +135,21 @@ def extract_treatments(content):
     # nightscout data downloaded in reverse time
     # dfTreatments = tmpDF.sort_values(by="time")
     dfTreatments = tmpDF.sort_index(ascending=False)
+    # reindex the dataframe
+    dfTreatments = dfTreatments.reset_index(drop=True)
 
     return test_designation, dfTreatments
 
 
 def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
+    # All tests start and end with steady state values of glucoseThreshold
+    #   All tests to date use glucoseThreshold of 110.
+    # The test begins off when the glucose goes above glucoseThreshold (for high) or 
+    # below glucoseThreshold (for low).
+    # During the test (at least for low), the values might go both above and below glucoseThreshold
+    #   So need to limit to be first reading after beginning not at glucoseThreshold
+    #   And last reading from the end not at glucoseThreshold
+
     # the first and last glucose should be glucoseThreshold or the times were not correct
     firstGlucose=dfDeviceStatus.iloc[0]['glucose']
     lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
@@ -149,25 +161,28 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     testDetails = {} # initialize an empty dictionary
 
     # auto detect if this is a high-glucose test or a low-glucose test.
-    lowFrame=dfDeviceStatus[dfDeviceStatus['glucose'] < glucoseThreshold]
-    highFrame=dfDeviceStatus[dfDeviceStatus['glucose'] > glucoseThreshold]
+    lowFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] < glucoseThreshold]
+    highFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] > glucoseThreshold]  
 
-    if len(highFrame) < len(lowFrame):
-        type = 'low'
-        startTime = lowFrame.iloc[0]['time']
-        endTime = lowFrame.iloc[-1]['time']
-    elif len(highFrame) > len(lowFrame):
+    if len(lowFrameIndex) == 0:
         type = 'high'
-        startTime = highFrame.iloc[0]['time']
-        endTime = highFrame.iloc[-1]['time']
+    elif len(highFrameIndex) == 0:
+        type = 'low'
+    elif lowFrameIndex[0] < highFrameIndex[0]:
+        type = 'low'
+    elif lowFrameIndex[0] > highFrameIndex[0]:
+        type = 'high'
     else:
         print('Could not detect if test type was low or high')
         exit(1)
     
+    if type == 'low':
+        print(f"lowFrameIndex: {lowFrameIndex[0]} to {lowFrameIndex[-1]}")
+        
     # limit dfDeviceStatus by time (allows a low event to exceed glucoseThreshold in middle)
-    deltaToCheck = pd.to_timedelta(10.0, unit='sec')
-    dfDeviceStatus=dfDeviceStatus[(dfDeviceStatus['time'] >= startTime-deltaToCheck) & \
-                (dfDeviceStatus['time'] <= endTime+deltaToCheck)]
+    dfDeviceStatus = filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type)
+    startTime = dfDeviceStatus.iloc[0]['time']
+    endTime = dfDeviceStatus.iloc[-1]['time']
     testDetails={
                 'type': type, 
                 'startTime': startTime,
@@ -177,6 +192,25 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
                 }
 
     return testDetails, dfDeviceStatus
+
+
+
+def filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type):
+    # We want to limit the dfDeviceStatus frame
+    #   First row that is above or below glucoseThreshold
+    #   Last row this is above or below glucoseThreshold
+    #   Allow intermediate values to be any glucose level.
+    if type == 'low':
+        indexNotAtGlucoseThreshold = dfDeviceStatus.index[dfDeviceStatus['glucose'] < glucoseThreshold]
+    else:
+        indexNotAtGlucoseThreshold = dfDeviceStatus.index[dfDeviceStatus['glucose'] > glucoseThreshold]
+
+    idx0 = indexNotAtGlucoseThreshold[0]
+    idx1 = indexNotAtGlucoseThreshold[-1]
+    print(f"first and last index are {idx0} and {idx1} out of {len(dfDeviceStatus)}")
+    dfDeviceStatus=dfDeviceStatus.loc[idx0:idx1]
+
+    return dfDeviceStatus
 
 
 def filter_test_treatments(dfTreatments, testDetails):
