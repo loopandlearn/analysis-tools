@@ -89,7 +89,6 @@ def create_glucose_file(dataframe, reportFile):
     stream_out = open(reportFile, mode='wt')
     stream_out.write(f"{startGlucose}\n")
     cycleTime = 290 # sec between values
-    haltAtGlucose = 120
 
     previousTime = startTime
     idx = 1
@@ -97,9 +96,6 @@ def create_glucose_file(dataframe, reportFile):
         # change to time
         timeStamp = row['time']
         glucose = row['glucose']
-        if glucose > haltAtGlucose:
-            print(f"quit at {timeStamp} with glucose of {glucose}")
-            break
         elapsedSec = (timeStamp-previousTime).total_seconds()
         if elapsedSec > cycleTime:
             stream_out.write(f"{glucose}\n")

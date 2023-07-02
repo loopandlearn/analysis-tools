@@ -136,3 +136,58 @@ def extract_treatments(content):
 
     return test_designation, dfTreatments
 
+
+def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
+    # the first and last glucose should be glucoseThreshold or the times were not correct
+    firstGlucose=dfDeviceStatus.iloc[0]['glucose']
+    lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
+    if not (firstGlucose == glucoseThreshold and lastGlucose == glucoseThreshold):
+        print("times are not correct - did not capture the whole test")
+        print("First and Last Glucose:", firstGlucose, lastGlucose)
+        exit(0)
+
+    testDetails = {} # initialize an empty dictionary
+
+    # auto detect if this is a high-glucose test or a low-glucose test.
+    lowFrame=dfDeviceStatus[dfDeviceStatus['glucose'] < glucoseThreshold]
+    highFrame=dfDeviceStatus[dfDeviceStatus['glucose'] > glucoseThreshold]
+
+    if len(highFrame) < len(lowFrame):
+        type = 'low'
+        startTime = lowFrame.iloc[0]['time']
+        endTime = lowFrame.iloc[-1]['time']
+    elif len(highFrame) > len(lowFrame):
+        type = 'high'
+        startTime = highFrame.iloc[0]['time']
+        endTime = highFrame.iloc[-1]['time']
+    else:
+        print('Could not detect if test type was low or high')
+        exit(1)
+    
+    # limit dfDeviceStatus by time (allows a low event to exceed glucoseThreshold in middle)
+    deltaToCheck = pd.to_timedelta(10.0, unit='sec')
+    dfDeviceStatus=dfDeviceStatus[(dfDeviceStatus['time'] >= startTime-deltaToCheck) & \
+                (dfDeviceStatus['time'] <= endTime+deltaToCheck)]
+    testDetails={
+                'type': type, 
+                'startTime': startTime,
+                'endTime': endTime,
+                'startTimeString': startTime.strftime("%Y-%m-%d %H:%M"),
+                'endTimeString': endTime.strftime("%Y-%m-%d %H:%M") 
+                }
+
+    return testDetails, dfDeviceStatus
+
+
+def filter_test_treatments(dfTreatments, testDetails):
+    # limit dfTreatments by time
+    deltaToCheck = pd.to_timedelta(10.0, unit='sec')
+    dfTreatments=dfTreatments[(dfTreatments['time'] >= (testDetails['startTime']-deltaToCheck)) & \
+                 (dfTreatments['time'] <= (testDetails['endTime']+deltaToCheck))]
+
+    # perform cumsum only after limiting time in dfTreatments
+    dfTreatments['insulinCumsum'] = dfTreatments['insulin'].cumsum()
+    #print(dfTreatments)
+
+    return dfTreatments
+

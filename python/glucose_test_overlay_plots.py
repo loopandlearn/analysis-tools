@@ -15,6 +15,8 @@ import numpy as np
 import pandas as pd
 from analysis.analysis import extract_devicestatus
 from analysis.analysis import extract_treatments
+from analysis.analysis import filter_test_devicestatus
+from analysis.analysis import filter_test_treatments
 from file_io.file_io import read_raw_nightscout
 from file_io.file_io import read_test_list
 from util.report import report_test_results
@@ -107,48 +109,23 @@ def main():
         content2 = read_raw_nightscout(treatmentsFilename)
         [nightscoutNote, dfTreatments] = extract_treatments(content2)
 
-        # the first and last glucose should be 110 or the times were not correct
-        firstGlucose=dfDeviceStatus.iloc[0]['glucose']
-        lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
-        if not (firstGlucose == 110 and lastGlucose == 110):
-            print("times are not correct - did not capture the whole test")
-            print("First and Last Glucose:", firstGlucose, lastGlucose)
-            exit(0)
-
-        # use glucose values > 110 as markers for start and end of test.
-        dfDeviceStatus=dfDeviceStatus[dfDeviceStatus['glucose'] > 110]
-        startTime = dfDeviceStatus.iloc[0]['time']
-        endTime = dfDeviceStatus.iloc[-1]['time']
-        startTimeString=startTime.strftime("%Y-%m-%d %H:%M")
-        endTimeString=endTime.strftime("%Y-%m-%d %H:%M")
-
-        # adjust time in case time stamps don't match exactly
-        deltaToCheck = pd.to_timedelta(10.0, unit='sec')
-        dfTreatments=dfTreatments[(dfTreatments['time'] >= (startTime-deltaToCheck)) & \
-                                (dfTreatments['time'] <= (endTime+deltaToCheck))]
-        # perform cumsum only after limiting time in dfTreatments
-        dfTreatments['insulinCumsum'] = dfTreatments['insulin'].cumsum()
+        # auto detect if this is a high-glucose test or a low-glucose test.
+        # in both cases, the beginning glucose for the test is > 110 or < 110.
+        # the steady state values are always 110.
+        [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
+        dfTreatments = filter_test_treatments(dfTreatments, testDetails)
 
         # add to testIO:
-        testIO['startTimeString']=startTimeString
-        testIO['endTimeString']=endTimeString
+        testIO['startTimeString']=testDetails['startTimeString']
+        testIO['endTimeString']=testDetails['endTimeString']
         testIO['nightscoutNote']=nightscoutNote
-
-        if verboseFlag == 2:
-            print(startTimeString, endTimeString)
-            print(" *** dfTreatments:")
-            print(dfTreatments)
-        
-        # add to testIO:
-        testIO['startTimeString']=startTimeString
-        testIO['endTimeString']=endTimeString    
-
+ 
         resultsDict = report_test_results("", testIO, dfDeviceStatus, dfTreatments)
         if verboseFlag:
             print_dict(resultsDict)
 
-        [fig, axes] = plot_one(fig, axes, testIdx, 
-                               duration, startTime, dfDeviceStatus, dfTreatments)
+        [fig, axes] = plot_one(fig, axes, testIdx, duration,
+                               testDetails['startTime'], dfDeviceStatus, dfTreatments)
         testIdx += 1
 
     # plot pandas dataframe containing Nightscout data
@@ -158,7 +135,7 @@ def main():
     # do not include legends with more than 5 plots
     if testIdx > 6:
         legendFlag = 0
-    [fig, axes] = plot_format(fig, axes, testLabel, titleString, legendFlag)
+    [fig, axes] = plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag)
     plot_save(plotFilename, fig)
     print(' END of plot overlay test\n')
 

@@ -72,13 +72,10 @@ def plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
     return fig, axes
 
 
-def plot_format(fig, axes, testLabel, titleString, legendFlag):
+def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
     naxes = 3
 
-
-    print()
-    print("Plot Title:")
-    print(" *** ", titleString)
+    print(f" *** Plot: {titleString}, type {type}")
 
     axes[0].set_title(titleString)
 
@@ -97,23 +94,35 @@ def plot_format(fig, axes, testLabel, titleString, legendFlag):
     axes[0].set_ylabel("Glucose")
     axes[0].set_xlabel("hours")
     bg_ylim = axes[0].get_ylim()
-    a = min(bg_ylim[0], 0)
-    b = max(1.1*bg_ylim[1], 300)
+    if testDetails['type'] == 'high':
+        a = min(bg_ylim[0], 0)
+        b = max(1.1*bg_ylim[1], 300)
+    else:
+        a = min(bg_ylim[0], 0)
+        b = max(1.1*bg_ylim[1], 150)
     axes[0].set_ylim([a, b])
 
     # handle case where IOB is never zero for entire plot
     axes[1].set_ylabel("IOB")
     axes[1].set_xlabel("hours")
     iob_ylim = axes[1].get_ylim()
-    a = min(1.1*iob_ylim[0], -1)
-    b = max(1.1*iob_ylim[1], 10)
+    if testDetails['type'] == 'high':
+        a = min(1.1*iob_ylim[0], -1)
+        b = max(1.1*iob_ylim[1], 10)
+    else:
+        a = min(1.1*iob_ylim[0], -1)
+        b = max(1.1*iob_ylim[1], 1)
     axes[1].set_ylim([a, b])
 
     axes[2].set_ylabel("Sum Insulin")
     axes[2].set_xlabel("hours")
     insulinCumsum_ylim = axes[2].get_ylim()
-    a = min(1.1*insulinCumsum_ylim[0], -1)
-    b = max(1.1*insulinCumsum_ylim[1], 10)
+    if testDetails['type'] == 'high':
+        a = min(1.1*insulinCumsum_ylim[0], -1)
+        b = max(1.1*insulinCumsum_ylim[1], 10)
+    else:
+        a = min(1.1*insulinCumsum_ylim[0], -1)
+        b = max(1.1*insulinCumsum_ylim[1], 1)
     axes[2].set_ylim([a, b])
 
     idx = 1
@@ -141,12 +150,12 @@ def plot_save(outFile, fig):
     return
 
 
-def plot_single_test(outFile, label, legendFlag, duration, startTime, dfDeviceStatus, dfTreatments):
+def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTime, dfDeviceStatus, dfTreatments):
     [fig, axes] = plot_initiate()
     idx = 0
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
     [fig, axes] = plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments)
-    [fig, axes] = plot_format(fig, axes, "", titleString, legendFlag)
+    [fig, axes] = plot_format(fig, axes, testDetails, "", titleString, legendFlag)
     plot_save(outFile, fig)
     return
 

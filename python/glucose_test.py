@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 from analysis.analysis import extract_devicestatus
 from analysis.analysis import extract_treatments
+from analysis.analysis import filter_test_devicestatus
+from analysis.analysis import filter_test_treatments
 from file_io.file_io import read_raw_nightscout
 from util.report import report_test_results
 from util.plot import plot_single_test
@@ -82,43 +84,16 @@ def main():
     content2 = read_raw_nightscout(treatmentsFilename)
     [nightscoutNote, dfTreatments] = extract_treatments(content2)
 
-    # the first and last glucose should be 110 or the times were not correct
-    firstGlucose=dfDeviceStatus.iloc[0]['glucose']
-    lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
-    if not (firstGlucose == 110 and lastGlucose == 110):
-        print("times are not correct - did not capture the whole test")
-        print("First and Last Glucose:", firstGlucose, lastGlucose)
-        exit(0)
-
-    # use glucose values > 110 as markers for start and end of test.
-    dfDeviceStatus=dfDeviceStatus[dfDeviceStatus['glucose'] > 110]
-    startTime = dfDeviceStatus.iloc[0]['time']
-    endTime = dfDeviceStatus.iloc[-1]['time']
-    startTimeString=startTime.strftime("%Y-%m-%d %H:%M")
-    endTimeString=endTime.strftime("%Y-%m-%d %H:%M")
-
-    # adjust time in case time stamps don't match exactly
-    deltaToCheck = pd.to_timedelta(10.0, unit='sec')
-    dfTreatments=dfTreatments[(dfTreatments['time'] >= (startTime-deltaToCheck)) & \
-                              (dfTreatments['time'] <= (endTime+deltaToCheck))]
-    # perform cumsum only after limiting time in dfTreatments
-    dfTreatments['insulinCumsum'] = dfTreatments['insulin'].cumsum()
+    # auto detect if this is a high-glucose test or a low-glucose test.
+    # in both cases, the beginning glucose for the test is > 110 or < 110.
+    # the steady state values are always 110.
+    [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
+    dfTreatments = filter_test_treatments(dfTreatments, testDetails)
 
     # add to testIO:
-    testIO['startTimeString']=startTimeString
-    testIO['endTimeString']=endTimeString
+    testIO['startTimeString']=testDetails['startTimeString']
+    testIO['endTimeString']=testDetails['endTimeString']
     testIO['nightscoutNote']=nightscoutNote
-
-    if verboseFlag == 2:
-        print(startTimeString, endTimeString)
-        print(" *** dfTreatments:")
-        print(dfTreatments)
-
-    
-    # add to testIO:
-    testIO['startTimeString']=startTimeString
-    testIO['endTimeString']=endTimeString    
- 
 
     if len(externalLabel) > 5:
         plotLabel = externalLabel
@@ -129,7 +104,7 @@ def main():
     # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
     # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
     # TODO: add ability to plot more than one test on a given figure
-    plot_single_test(plotFilename, plotLabel, legendFlag, duration, startTime,
+    plot_single_test(plotFilename, plotLabel, testDetails, legendFlag, duration, testDetails['startTime'],
                      dfDeviceStatus, dfTreatments)
     print(' *** plot created:     ', plotFilename)
     print(' END of Analysis\n')

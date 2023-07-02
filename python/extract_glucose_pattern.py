@@ -69,6 +69,7 @@ def main():
     # add to testIO:
     testIO['startTimeString']=startTimeString
     testIO['endTimeString']=endTimeString
+    print_dict(testIO)
 
     if verboseFlag == 2:
         print(startTimeString, endTimeString)
