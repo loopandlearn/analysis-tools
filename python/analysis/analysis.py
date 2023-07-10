@@ -151,6 +151,10 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     #   And last reading from the end not at glucoseThreshold
 
     # the first and last glucose should be glucoseThreshold or the times were not correct
+    if len(dfDeviceStatus) == 0:
+        print(f"Error - there is no data - check inputs")
+        exit(1)
+        
     firstGlucose=dfDeviceStatus.iloc[0]['glucose']
     lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
     if not (firstGlucose == glucoseThreshold and lastGlucose == glucoseThreshold):
@@ -169,8 +173,10 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     elif len(highFrameIndex) == 0:
         type = 'low'
     elif lowFrameIndex[0] < highFrameIndex[0]:
+        print('Decided test is low')
         type = 'low'
     elif lowFrameIndex[0] > highFrameIndex[0]:
+        print('Decided test is high')
         type = 'high'
     else:
         print('Could not detect if test type was low or high')
@@ -183,16 +189,17 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     dfDeviceStatus = filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type)
     startTime = dfDeviceStatus.iloc[0]['time']
     endTime = dfDeviceStatus.iloc[-1]['time']
+    duration = (endTime - startTime).total_seconds() / 3600.
     testDetails={
                 'type': type, 
                 'startTime': startTime,
                 'endTime': endTime,
+                'durationInHours': duration,
                 'startTimeString': startTime.strftime("%Y-%m-%d %H:%M"),
                 'endTimeString': endTime.strftime("%Y-%m-%d %H:%M") 
                 }
 
     return testDetails, dfDeviceStatus
-
 
 
 def filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type):
@@ -209,6 +216,9 @@ def filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type):
     idx1 = indexNotAtGlucoseThreshold[-1]
     print(f"first and last index are {idx0} and {idx1} out of {len(dfDeviceStatus)}")
     dfDeviceStatus=dfDeviceStatus.loc[idx0:idx1]
+    if len(dfDeviceStatus) == 0:
+        print(f"Error - dfDeviceStatus is empty after filtering")
+        exit(1)
 
     return dfDeviceStatus
 
