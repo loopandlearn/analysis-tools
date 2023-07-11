@@ -22,7 +22,7 @@ from file_io.file_io import read_test_list
 from util.report import report_test_results
 #from util.plot import plot_single_test
 from util.plot import plot_initiate
-from util.plot import plot_one
+from util.plot import plot_one_test
 from util.plot import plot_format
 from util.plot import plot_save
 from util.util import print_dict
@@ -111,7 +111,7 @@ def main():
         if testDetails['durationInHours'] > duration:
             duration = testDetails['durationInHours']
 
-        [fig, axes] = plot_one(fig, axes, testIdx, duration,
+        [fig, axes] = plot_one_test(fig, axes, testIdx, duration,
                                testDetails['startTime'], dfDeviceStatus, dfTreatments)
         testIdx += 1
 

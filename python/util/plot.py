@@ -1,7 +1,8 @@
 # plot.py
 # plotting functions:
-#  single test (now)
-#  multiple tests (planned)
+#   At one point, only labeled the x-axes for bottom plot of 3.
+#   Modify that to plot the middle and bottom plots, 
+#   can then clip the plot to show just IOB and have it be labeled properly
 
 
 import pandas as pd
@@ -39,7 +40,7 @@ def plot_initiate():
     return fig, axes
 
 
-def plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
+def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
     colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
                  'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
     styleList = ['-', '--', '-.', ':']
@@ -154,7 +155,7 @@ def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTim
     [fig, axes] = plot_initiate()
     idx = 0
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
-    [fig, axes] = plot_one(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments)
+    [fig, axes] = plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments)
     [fig, axes] = plot_format(fig, axes, testDetails, "", titleString, legendFlag)
     plot_save(outFile, fig)
     return
