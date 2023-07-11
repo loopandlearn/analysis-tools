@@ -46,7 +46,6 @@ def main():
     verboseFlag=0
     duration = 5 # plot all tests with fixed hour duration
 
-    testIO = {}
     numArgs = len(sys.argv)-1
     # if insufficient arguments, provide help
     if numArgs < 2:
@@ -86,19 +85,7 @@ def main():
         devicestatusFilename = test + "_devicestatus.txt"
         treatmentsFilename = test + "_treatments.txt"
         externalLabel = testLabel[testIdx]
-        testIO = {
-                "foldername": foldername,
-                "devicestatusFilename": devicestatusFilename,
-                "treatmentsFilename": treatmentsFilename,
-                "externalLabel": externalLabel,
-                "nightscoutNote": "",
-                "plotname": plotname
-                }
 
-        if verboseFlag == 1:
-            print_dict(testIO)
-
-        devicestatusFilename = foldername + "/" + devicestatusFilename
         content1 = read_raw_nightscout(devicestatusFilename)
         dfDeviceStatus = extract_devicestatus(content1)
         if verboseFlag == 2:
@@ -110,19 +97,19 @@ def main():
         [nightscoutNote, dfTreatments] = extract_treatments(content2)
 
         # auto detect if this is a high-glucose test or a low-glucose test.
-        # in both cases, the beginning glucose for the test is > 110 or < 110.
-        # the steady state values are always 110.
         [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
         dfTreatments = filter_test_treatments(dfTreatments, testDetails)
 
-        # add to testIO:
-        testIO['startTimeString']=testDetails['startTimeString']
-        testIO['endTimeString']=testDetails['endTimeString']
-        testIO['nightscoutNote']=nightscoutNote
+        testDetails['nightscoutNote']=nightscoutNote
+        testDetails['externalLabel']=externalLabel
+        testDetails['plotname']=plotname
  
-        resultsDict = report_test_results("", testIO, dfDeviceStatus, dfTreatments)
+        resultsDict = report_test_results("", testDetails, dfDeviceStatus, dfTreatments)
         if verboseFlag:
             print_dict(resultsDict)
+        
+        if testDetails['durationInHours'] > duration:
+            duration = testDetails['durationInHours']
 
         [fig, axes] = plot_one(fig, axes, testIdx, duration,
                                testDetails['startTime'], dfDeviceStatus, dfTreatments)

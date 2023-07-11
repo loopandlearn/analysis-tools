@@ -24,6 +24,7 @@ def help(reportFilename):
     print("  python extract_glucose_pattern.py arg1")
     print("    arg1 - filename with nightscout download")
     print("    arg2 - (optional) output file for 5 minute glucose values")
+    print("    arg3 - (optional) label to add to plot")
 
 
 def main():
@@ -43,9 +44,13 @@ def main():
         devicestatusFilename = sys.argv[1]
 
     plotFilename = "plot_glucose.png"
-    if numArgs == 2:
+    if numArgs >= 2:
         reportFlag = 1
         reportFile = sys.argv[2]
+
+    extraLabel = ""
+    if numArgs >= 3:
+        extraLabel = sys.argv[3]
 
     # begin filling in testIO here
     testIO = {
@@ -82,9 +87,8 @@ def main():
     testIO['endTimeString']=endTimeString    
  
     # plot pandas dataframe containing Nightscout data
-    plotLabel = f'glucose example {startTime}'
     legendFlag = 0
-    plot_glucose(plotFilename, plotLabel, legendFlag, duration, startTime,
+    plot_glucose(plotFilename, extraLabel, legendFlag, duration, startTime,
                      dfDeviceStatus)
     print(' *** plot created:     ', plotFilename)
 

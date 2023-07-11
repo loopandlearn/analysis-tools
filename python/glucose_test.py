@@ -35,9 +35,9 @@ def main():
     # 0 = none, 1 = a little verbose, 2 = very verbose
     verboseFlag=0 
     duration = 5 # plot all tests with fixed hour duration
+    # modify this if test is longer than fixed hour duration, e.g., very bad night
     legendFlag = 1 # include legend
 
-    testIO = {}
     numArgs = len(sys.argv)-1
     reportFilename="glucose_impulse_response.csv"
     # if insufficient arguments, provide help
@@ -61,18 +61,6 @@ def main():
     plotname = "plot_" + timestamp_id + ".png"
     plotFilename = foldername + "/" + plotname
 
-    # begin filling in testIO here
-    testIO = {"scriptname": scriptname,
-              "foldername": foldername,
-              "devicestatusFilename": devicestatusFilename,
-              "treatmentsFilename": treatmentsFilename,
-              "externalLabel": externalLabel,
-              "reportFilename": reportFilename,
-              "plotname": plotname}
-
-    if verboseFlag == 1:
-        print_dict(testIO)
-
     devicestatusFilename = foldername + "/" + devicestatusFilename
     content1 = read_raw_nightscout(devicestatusFilename)
     dfDeviceStatus = extract_devicestatus(content1)
@@ -88,15 +76,20 @@ def main():
     [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
     dfTreatments = filter_test_treatments(dfTreatments, testDetails)
 
-    # add to testIO:
-    testIO['startTimeString']=testDetails['startTimeString']
-    testIO['endTimeString']=testDetails['endTimeString']
-    testIO['nightscoutNote']=nightscoutNote
+    print_dict(testDetails)
+    # combine testDetails with older concept of TestIO
+    testDetails['nightscoutNote']=nightscoutNote
+    testDetails['externalLabel']=externalLabel
+    testDetails['plotname']=plotname
+    print_dict(testDetails)
 
     if len(externalLabel) > 5:
         plotLabel = externalLabel
+    
+    if testDetails['durationInHours'] > duration:
+        duration = testDetails['durationInHours']
 
-    resultsDict = report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments)
+    resultsDict = report_test_results(reportFilename, testDetails, dfDeviceStatus, dfTreatments)
 
     # plot pandas dataframe containing Nightscout data
     # always beginning of input filename (YYYY-MM-DDTHH for the output plot)

@@ -168,6 +168,7 @@ def plot_glucose(outFile, label, legendFlag, duration, startTime, dfDeviceStatus
     idx = 0
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
     [fig, axes] = plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus)
+    axes[0].set_title(titleString)
     #[fig, axes] = plot_format(fig, axes, "", titleString, legendFlag)
     plot_save(outFile, fig)
     return
