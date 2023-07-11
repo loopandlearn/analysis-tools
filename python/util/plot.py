@@ -33,14 +33,20 @@ def select_non_zero_diffs(dataframe, columnString, epsilon):
     return dataframe
 
 
-def plot_initiate():
-    nrow = 3
-    ncol = 1
-    fig, axes = plt.subplots(nrow, ncol, figsize=(5, 7), sharex='col')
+def plot_initiate(nrows, ncols):
+    if nrows == 2:
+        figSize = (5, 7)
+    else:
+        figSize =  (5, 10)
+    fig, axes = plt.subplots(nrows, ncols, figsize=figSize)
+    print('*** figSize = ', figSize)
+
     return fig, axes
 
 
 def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
+    naxes=len(axes)
+
     colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
                  'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
     styleList = ['-', '--', '-.', ':']
@@ -56,17 +62,14 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
     epsilon = 0.02
     dfInsulinCumSum = select_non_zero_diffs(dfTreatments, 'insulinCumsum', epsilon)
 
-    print(f"rows before/after filter: " + \
-           f"{len(dfDeviceStatus)}, {len(dfTreatments)}, " + \
-           f"{len(dfIOB)}, {len(dfInsulinCumSum)}")
-
-    # always plot glucose as black - plot each to ensure no outliers
+    # plot glucose each time to ensure alignment
     dfDeviceStatus.plot(x='elapsedHours', y='glucose', c=color, ax=axes[0],
                         style=style, xlim=xRange, xticks=bottom_ticks)
     dfIOB.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1], 
                         style=style, xlim=xRange, xticks=bottom_ticks)
-    dfInsulinCumSum.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2], 
-                      style=style, xlim=xRange, xticks=bottom_ticks)
+    if naxes == 3:
+        dfInsulinCumSum.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2],
+                        style=style, xlim=xRange, xticks=bottom_ticks)
     plt.draw()
     plt.pause(0.001)
 
@@ -74,26 +77,16 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
 
 
 def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
-    naxes = 3
-
-    print(f" *** Plot: {titleString}, type {type}")
-
+    naxes = len(axes)
     axes[0].set_title(titleString)
 
     for x in axes:
         x.grid('on')
-        #x.legend(bbox_to_anchor=(1.11, 1.0), framealpha=1.0)
-
-    idx = 0
-    while idx < naxes:
-        x_axis = axes[idx].axes.get_xaxis()
-        x_label = x_axis.get_label()
-        #x_axis.set_ticklabels([])
-        idx += 1
+        x.set_xlabel("hours")
+        x.xaxis.set_label_position('bottom')
 
     # set limits for BG (always in mg/dl)
     axes[0].set_ylabel("Glucose")
-    axes[0].set_xlabel("hours")
     bg_ylim = axes[0].get_ylim()
     if testDetails['type'] == 'high':
         a = min(bg_ylim[0], 0)
@@ -105,7 +98,6 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
 
     # handle case where IOB is never zero for entire plot
     axes[1].set_ylabel("IOB")
-    axes[1].set_xlabel("hours")
     iob_ylim = axes[1].get_ylim()
     if testDetails['type'] == 'high':
         a = min(1.1*iob_ylim[0], -1)
@@ -115,26 +107,25 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
         b = max(1.1*iob_ylim[1], 1)
     axes[1].set_ylim([a, b])
 
-    axes[2].set_ylabel("Sum Insulin")
-    axes[2].set_xlabel("hours")
-    insulinCumsum_ylim = axes[2].get_ylim()
-    if testDetails['type'] == 'high':
-        a = min(1.1*insulinCumsum_ylim[0], -1)
-        b = max(1.1*insulinCumsum_ylim[1], 10)
-    else:
-        a = min(1.1*insulinCumsum_ylim[0], -1)
-        b = max(1.1*insulinCumsum_ylim[1], 1)
-    axes[2].set_ylim([a, b])
+    if naxes == 3:
+        axes[2].set_ylabel("Sum Insulin")
+        insulinCumsum_ylim = axes[2].get_ylim()
+        if testDetails['type'] == 'high':
+            a = min(1.1*insulinCumsum_ylim[0], -1)
+            b = max(1.1*insulinCumsum_ylim[1], 10)
+        else:
+            a = min(1.1*insulinCumsum_ylim[0], -1)
+            b = max(1.1*insulinCumsum_ylim[1], 1)
+        axes[2].set_ylim([a, b])
+        axes[2].legend('')
 
-    idx = 1
-    anchorTuple = [1.05, 1.0]
+    anchorTuple = [1.10, 0.90]
     # Only need one legend for the plot
     axes[0].legend('')
     if legendFlag == 1:
         axes[1].legend(testLabel, loc='right', bbox_to_anchor=anchorTuple, framealpha=1.0)
     else:
         axes[1].legend('')
-    axes[2].legend('')
 
     plt.draw()
     plt.pause(0.001)
@@ -152,7 +143,9 @@ def plot_save(outFile, fig):
 
 
 def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTime, dfDeviceStatus, dfTreatments):
-    [fig, axes] = plot_initiate()
+    nrows = 3
+    ncols = 1
+    [fig, axes] = plot_initiate(nrows, ncols)
     idx = 0
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
     [fig, axes] = plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments)
@@ -160,8 +153,11 @@ def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTim
     plot_save(outFile, fig)
     return
 
+
 def plot_glucose(outFile, label, legendFlag, duration, startTime, dfDeviceStatus):
-    [fig, axes] = plot_initiate_glucose()
+    nrows = 2
+    ncols = 1
+    [fig, axes] = plot_initiate(nrows, ncols)
     oneHrInSec = 3600.0
     if duration == 0:
         duration= (dfDeviceStatus.iloc[-1]['time']- 
@@ -170,16 +166,8 @@ def plot_glucose(outFile, label, legendFlag, duration, startTime, dfDeviceStatus
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
     [fig, axes] = plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus)
     axes[0].set_title(titleString)
-    #[fig, axes] = plot_format(fig, axes, "", titleString, legendFlag)
     plot_save(outFile, fig)
     return
-
-
-def plot_initiate_glucose():
-    nrow = 2
-    ncol = 1
-    fig, axes = plt.subplots(nrow, ncol, figsize=(5, 7), sharex='col')
-    return fig, axes
 
 
 def plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus):

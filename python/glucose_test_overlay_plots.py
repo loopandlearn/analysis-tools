@@ -34,17 +34,18 @@ def help():
     print("    arg1 - path for data I/O")
     print("    arg2 - overlayID - see below")
     print("    arg3 - plotSubtitle - if provided and not empty string")
-    print("    arg4 - legendFlag - if provided, legends are not shown\n")
+    print("    arg4 - legendFlag - if provided, legends are not shown")
     print("           legends are not shown if > 5 test are overlaid\n")
     print(" input_for_arg2.txt : text file with list of identifiers")
     print("       each identifier is used to read in data and overlay on a single plot")
-    print(" plot_overlay_arg2.png : output filename\n\n")
+    print(" output plot name:")
+    print("     plot_overlay_arg2.png\n\n")
 
 
 def main():
     # 0 = none, 1 = a little verbose, 2 = very verbose
     verboseFlag=0
-    duration = 5 # plot all tests with fixed hour duration
+    duration = 5 # minimum duration, can be longer
 
     numArgs = len(sys.argv)-1
     # if insufficient arguments, provide help
@@ -62,13 +63,13 @@ def main():
     if numArgs >= 3:
         plotSubtitle = sys.argv[3]
     
+
     if numArgs == 4:
         legendFlag = 0
         print("changed legendFlag to ", legendFlag)
 
     inputname = f'input_for_{overlayID}.txt'
     plotname = f'plot_overlay_{overlayID}.png'
-    
     plotFilename = foldername + "/" + plotname
     inputFilename = foldername + "/" + inputname
     [testList, testLabel] = read_test_list(inputFilename)
@@ -76,7 +77,10 @@ def main():
         print("no tests listed in ", inputFilename)
         exit(1)
 
-    [fig, axes] = plot_initiate()
+    # configure plot bases on input arguments
+    nrows = 3
+    ncols = 1
+    [fig, axes] = plot_initiate(nrows, ncols)
 
     testIdx = 0
 

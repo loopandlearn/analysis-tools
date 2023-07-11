@@ -80,7 +80,10 @@ def main():
         print("no tests listed in ", inputFilename)
         exit(1)
 
-    [fig, axes] = plot_initiate()
+    # configure plot bases on input arguments
+    nrows = 3
+    ncols = 1
+    [fig, axes] = plot_initiate(nrows, ncols)
 
     testIdx = 0
 
