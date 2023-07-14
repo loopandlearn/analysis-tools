@@ -28,8 +28,11 @@ def add_delta_time_column_in_hours(startTime, dataframe):
 
 def select_non_zero_diffs(dataframe, columnString, epsilon):
     # skip time stamps where the column of interest does not change
+    # this was not working as expected in some cases
+    #  and only using tests with the 5-minute loop cycle enforced so not needed
     dataframe['deltaValue'] = dataframe[columnString].diff()
     dataframe=dataframe[dataframe['deltaValue'].abs() > epsilon]
+    dataframe=dataframe.reset_index(drop=True)
     return dataframe
 
 
@@ -39,7 +42,6 @@ def plot_initiate(nrows, ncols):
     else:
         figSize =  (5, 10)
     fig, axes = plt.subplots(nrows, ncols, figsize=figSize)
-    print('*** figSize = ', figSize)
 
     return fig, axes
 
@@ -57,18 +59,25 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
     dfDeviceStatus = add_delta_time_column_in_hours(startTime, dfDeviceStatus)
     dfTreatments = add_delta_time_column_in_hours(startTime, dfTreatments)
 
+    '''
+    print(dfDeviceStatus)
+
     epsilon = 0.06
     dfIOB = select_non_zero_diffs(dfDeviceStatus, 'IOB', epsilon)
     epsilon = 0.02
     dfInsulinCumSum = select_non_zero_diffs(dfTreatments, 'insulinCumsum', epsilon)
+    print(dfIOB)
+    print(dfTreatments)
+    print(dfInsulinCumSum)
+    '''
 
     # plot glucose each time to ensure alignment
     dfDeviceStatus.plot(x='elapsedHours', y='glucose', c=color, ax=axes[0],
                         style=style, xlim=xRange, xticks=bottom_ticks)
-    dfIOB.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1], 
+    dfDeviceStatus.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1],
                         style=style, xlim=xRange, xticks=bottom_ticks)
     if naxes == 3:
-        dfInsulinCumSum.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2],
+        dfTreatments.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2],
                         style=style, xlim=xRange, xticks=bottom_ticks)
     plt.draw()
     plt.pause(0.001)
@@ -86,36 +95,36 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
         x.xaxis.set_label_position('bottom')
 
     # set limits for BG (always in mg/dl)
-    axes[0].set_ylabel("Glucose")
+    axes[0].set_ylabel("Glucose (mg/dL)")
     bg_ylim = axes[0].get_ylim()
     if testDetails['type'] == 'high':
         a = min(bg_ylim[0], 0)
         b = max(1.1*bg_ylim[1], 300)
     else:
         a = min(bg_ylim[0], 0)
-        b = max(1.1*bg_ylim[1], 150)
+        b = max(1.1*bg_ylim[1], 250)
     axes[0].set_ylim([a, b])
 
     # handle case where IOB is never zero for entire plot
-    axes[1].set_ylabel("IOB")
+    axes[1].set_ylabel("IOB (U)")
     iob_ylim = axes[1].get_ylim()
     if testDetails['type'] == 'high':
         a = min(1.1*iob_ylim[0], -1)
         b = max(1.1*iob_ylim[1], 10)
     else:
         a = min(1.1*iob_ylim[0], -1)
-        b = max(1.1*iob_ylim[1], 1)
+        b = max(1.1*iob_ylim[1], 6)
     axes[1].set_ylim([a, b])
 
     if naxes == 3:
-        axes[2].set_ylabel("Sum Insulin")
+        axes[2].set_ylabel("Sum Insulin (U)")
         insulinCumsum_ylim = axes[2].get_ylim()
         if testDetails['type'] == 'high':
             a = min(1.1*insulinCumsum_ylim[0], -1)
             b = max(1.1*insulinCumsum_ylim[1], 10)
         else:
             a = min(1.1*insulinCumsum_ylim[0], -1)
-            b = max(1.1*insulinCumsum_ylim[1], 1)
+            b = max(1.1*insulinCumsum_ylim[1], 8)
         axes[2].set_ylim([a, b])
         axes[2].legend('')
 
@@ -147,7 +156,7 @@ def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTim
     ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
     idx = 0
-    titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
+    titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}\n')
     [fig, axes] = plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments)
     [fig, axes] = plot_format(fig, axes, testDetails, "", titleString, legendFlag)
     plot_save(outFile, fig)
