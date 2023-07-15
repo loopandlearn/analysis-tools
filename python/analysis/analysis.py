@@ -150,17 +150,24 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     #   So need to limit to be first reading after beginning not at glucoseThreshold
     #   And last reading from the end not at glucoseThreshold
 
+    filterDataFlag = 1
+
     # the first and last glucose should be glucoseThreshold or the times were not correct
     if len(dfDeviceStatus) == 0:
         print(f"Error - there is no data - check inputs")
         exit(1)
-        
+
     firstGlucose=dfDeviceStatus.iloc[0]['glucose']
     lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
     if not (firstGlucose == glucoseThreshold and lastGlucose == glucoseThreshold):
+        print("   WARNING ---- ")
         print("times are not correct - did not capture the whole test")
         print("First and Last Glucose:", firstGlucose, lastGlucose)
-        exit(0)
+        print("   WARNING ---- ")
+        print("All data in the device files will be used")
+        filterDataFlag = 0
+        print("   WARNING ---- ")
+        #exit(0)
 
     testDetails = {} # initialize an empty dictionary
 
@@ -182,11 +189,12 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
         print('Could not detect if test type was low or high')
         exit(1)
     
-    if type == 'low':
-        print(f"lowFrameIndex: {lowFrameIndex[0]} to {lowFrameIndex[-1]}")
+    #if type == 'low':
+    #    print(f"lowFrameIndex: {lowFrameIndex[0]} to {lowFrameIndex[-1]}")
         
     # limit dfDeviceStatus by time (allows a low event to exceed glucoseThreshold in middle)
-    dfDeviceStatus = filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type)
+    if filterDataFlag == 1:
+        dfDeviceStatus = filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type)
     startTime = dfDeviceStatus.iloc[0]['time']
     endTime = dfDeviceStatus.iloc[-1]['time']
     duration = (endTime - startTime).total_seconds() / 3600.
@@ -220,6 +228,7 @@ def filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type):
         print(f"Error - dfDeviceStatus is empty after filtering")
         exit(1)
 
+    dfDeviceStatus = dfDeviceStatus.reset_index(drop=True)
     return dfDeviceStatus
 
 
@@ -230,6 +239,7 @@ def filter_test_treatments(dfTreatments, testDetails):
                  (dfTreatments['time'] <= (testDetails['endTime']+deltaToCheck))]
 
     # perform cumsum only after limiting time in dfTreatments
+    dfTreatments = dfTreatments.reset_index(drop=True)
     dfTreatments['insulinCumsum'] = dfTreatments['insulin'].cumsum()
     #print(dfTreatments)
 

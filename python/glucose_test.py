@@ -71,17 +71,24 @@ def main():
     treatmentsFilename = foldername + "/" + treatmentsFilename
     content2 = read_raw_nightscout(treatmentsFilename)
     [nightscoutNote, dfTreatments] = extract_treatments(content2)
+    if verboseFlag == 2:
+        print(" *** dfTreatments:")
+        print(dfTreatments)
 
     # auto detect if this is a high-glucose test or a low-glucose test.
     [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
     dfTreatments = filter_test_treatments(dfTreatments, testDetails)
 
-    print_dict(testDetails)
+    if verboseFlag == 2:
+        print_dict(testDetails)
+        print(dfDeviceStatus)
+        print(dfTreatments)
     # combine testDetails with older concept of TestIO
     testDetails['nightscoutNote']=nightscoutNote
     testDetails['externalLabel']=externalLabel
     testDetails['plotname']=plotname
-    print_dict(testDetails)
+    if verboseFlag == 1:
+        print_dict(testDetails)
 
     if len(externalLabel) > 5:
         plotLabel = externalLabel
