@@ -64,6 +64,8 @@ def extract_devicestatus(content):
     # nightscout data downloaded in reverse time
     # dfDeviceStatus = tmpDF.sort_values(by="time")
     dfDeviceStatus = tmpDF.sort_index(ascending=False)
+    # reindex the dataframe
+    dfDeviceStatus = dfDeviceStatus.reset_index(drop=True)
 
     return dfDeviceStatus
 
@@ -133,6 +135,113 @@ def extract_treatments(content):
     # nightscout data downloaded in reverse time
     # dfTreatments = tmpDF.sort_values(by="time")
     dfTreatments = tmpDF.sort_index(ascending=False)
+    # reindex the dataframe
+    dfTreatments = dfTreatments.reset_index(drop=True)
 
     return test_designation, dfTreatments
+
+
+def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
+    # All tests start and end with steady state values of glucoseThreshold
+    #   All tests to date use glucoseThreshold of 110.
+    # The test begins off when the glucose goes above glucoseThreshold (for high) or 
+    # below glucoseThreshold (for low).
+    # During the test (at least for low), the values might go both above and below glucoseThreshold
+    #   So need to limit to be first reading after beginning not at glucoseThreshold
+    #   And last reading from the end not at glucoseThreshold
+
+    filterDataFlag = 1
+
+    # the first and last glucose should be glucoseThreshold or the times were not correct
+    if len(dfDeviceStatus) == 0:
+        print(f"Error - there is no data - check inputs")
+        exit(1)
+
+    firstGlucose=dfDeviceStatus.iloc[0]['glucose']
+    lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
+    if not (firstGlucose == glucoseThreshold and lastGlucose == glucoseThreshold):
+        print("   WARNING ---- ")
+        print("times are not correct - did not capture the whole test")
+        print("First and Last Glucose:", firstGlucose, lastGlucose)
+        print("   WARNING ---- ")
+        print("All data in the device files will be used")
+        filterDataFlag = 0
+        print("   WARNING ---- ")
+        #exit(0)
+
+    testDetails = {} # initialize an empty dictionary
+
+    # auto detect if this is a high-glucose test or a low-glucose test.
+    lowFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] < glucoseThreshold]
+    highFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] > glucoseThreshold]  
+
+    if len(lowFrameIndex) == 0:
+        type = 'high'
+    elif len(highFrameIndex) == 0:
+        type = 'low'
+    elif lowFrameIndex[0] < highFrameIndex[0]:
+        print('Decided test is low')
+        type = 'low'
+    elif lowFrameIndex[0] > highFrameIndex[0]:
+        print('Decided test is high')
+        type = 'high'
+    else:
+        print('Could not detect if test type was low or high')
+        exit(1)
+    
+    #if type == 'low':
+    #    print(f"lowFrameIndex: {lowFrameIndex[0]} to {lowFrameIndex[-1]}")
+        
+    # limit dfDeviceStatus by time (allows a low event to exceed glucoseThreshold in middle)
+    if filterDataFlag == 1:
+        dfDeviceStatus = filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type)
+    startTime = dfDeviceStatus.iloc[0]['time']
+    endTime = dfDeviceStatus.iloc[-1]['time']
+    duration = (endTime - startTime).total_seconds() / 3600.
+    testDetails={
+                'type': type, 
+                'startTime': startTime,
+                'endTime': endTime,
+                'durationInHours': duration,
+                'startTimeString': startTime.strftime("%Y-%m-%d %H:%M"),
+                'endTimeString': endTime.strftime("%Y-%m-%d %H:%M") 
+                }
+
+    return testDetails, dfDeviceStatus
+
+
+def filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type):
+    # We want to limit the dfDeviceStatus frame
+    #   First row that is above or below glucoseThreshold
+    #   Last row this is above or below glucoseThreshold
+    #   Allow intermediate values to be any glucose level.
+    if type == 'low':
+        indexNotAtGlucoseThreshold = dfDeviceStatus.index[dfDeviceStatus['glucose'] < glucoseThreshold]
+    else:
+        indexNotAtGlucoseThreshold = dfDeviceStatus.index[dfDeviceStatus['glucose'] > glucoseThreshold]
+
+    idx0 = indexNotAtGlucoseThreshold[0]
+    idx1 = indexNotAtGlucoseThreshold[-1]
+    print(f"first and last index are {idx0} and {idx1} out of {len(dfDeviceStatus)}")
+    dfDeviceStatus=dfDeviceStatus.loc[idx0:idx1]
+    if len(dfDeviceStatus) == 0:
+        print(f"Error - dfDeviceStatus is empty after filtering")
+        exit(1)
+
+    dfDeviceStatus = dfDeviceStatus.reset_index(drop=True)
+    return dfDeviceStatus
+
+
+def filter_test_treatments(dfTreatments, testDetails):
+    # limit dfTreatments by time
+    deltaToCheck = pd.to_timedelta(10.0, unit='sec')
+    dfTreatments=dfTreatments[(dfTreatments['time'] >= (testDetails['startTime']-deltaToCheck)) & \
+                 (dfTreatments['time'] <= (testDetails['endTime']+deltaToCheck))]
+
+    # perform cumsum only after limiting time in dfTreatments
+    dfTreatments = dfTreatments.reset_index(drop=True)
+    dfTreatments['insulinCumsum'] = dfTreatments['insulin'].cumsum()
+    #print(dfTreatments)
+
+    return dfTreatments
 
