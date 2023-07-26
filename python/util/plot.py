@@ -128,7 +128,8 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
         axes[2].set_ylim([a, b])
         axes[2].legend('')
 
-    anchorTuple = [1.10, 0.90]
+    # anchorTuple = [1.10, 0.90]
+    anchorTuple = [1.10, 1.10]
     # Only need one legend for the plot
     axes[0].legend('')
     if legendFlag == 1:

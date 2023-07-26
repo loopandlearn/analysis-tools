@@ -9,6 +9,8 @@
 
 #   function names use undercase separated by underscore: function_name
 #   variable name use camel case: variableName
+# in general - I do not want the overlay to show the integrated insulin
+#   adds clutter and confusion
 
 import sys
 import numpy as np
@@ -46,6 +48,7 @@ def main():
     # 0 = none, 1 = a little verbose, 2 = very verbose
     verboseFlag=0
     duration = 5 # minimum duration, can be longer
+    cumInsulinPlotFlag = 0 # if 0, do not include third plot
 
     numArgs = len(sys.argv)-1
     # if insufficient arguments, provide help
@@ -77,9 +80,13 @@ def main():
         print("no tests listed in ", inputFilename)
         exit(1)
 
-    # configure plot bases on input arguments
-    nrows = 3
-    ncols = 1
+    # configure plot based on flag
+    if cumInsulinPlotFlag == 0:
+        nrows = 2
+        ncols = 1
+    else:
+        nrows = 3
+        ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
 
     testIdx = 0
@@ -115,7 +122,7 @@ def main():
         if testDetails['durationInHours'] > duration:
             duration = testDetails['durationInHours']
 
-        [fig, axes] = plot_one_test(fig, axes, testIdx, duration,
+        [fig, axes] = plot_one_test(fig, axes, testIdx, duration, 
                                testDetails['startTime'], dfDeviceStatus, dfTreatments)
         testIdx += 1
 
