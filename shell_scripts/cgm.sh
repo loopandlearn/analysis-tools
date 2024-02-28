@@ -6,8 +6,16 @@ then
     exit
 fi
 
-if [ "$#" -ne 4 ]; then
-    echo "Usage: ./cgm.sh <input file> <delay> <nightscout address> <api key>"
+if [ "$#" -eq 5 ]; then
+    NOISE_PERCENT="$5"
+    echo "NOISE_PERCENT = $NOISE_PERCENT"
+else
+    NOISE_PERCENT=0
+fi
+
+if [ "$#" -lt 4 ]; then
+    echo "Usage: ./cgm.sh <input file> <delay> <nightscout address> <api key> [noise-percent]"
+    echo "   Note noise-percent is optional, must be an integer and is applied using a random number in the script"
     exit 1
 fi
 
@@ -21,10 +29,21 @@ echo "API Secret: $API_SECRET"
 
 while IFS= read -r line
 do
-  echo "CGM Value: $line"
+  if [ ${NOISE_PERCENT} -ne "0" ]; then
+    random_number=$RANDOM
+    random_noise=$(($random_number - 16535))
+    noise_to_add=$((($line * $NOISE_PERCENT * $random_noise)/1653500))
+    cgm_value=$(($line + $noise_to_add))
+    # echo "Next CGM Value, cgm_with_noise (random_number, noise) = $line, ${cgm_value} (${random_number}, ${noise_to_add})"
+    echo "Next CGM Value, cgm_with_noise = $line, ${cgm_value}"
+  else
+    cgm_value=$line
+    echo "Next CGM Value = $cgm_value"
+  fi
   
   CURRENT_TIME=$(date +%s)000
 
-  curl -X POST -H "api-secret: $API_SECRET" -H "Content-Type: application/json" -d "{\"type\":\"sgv\",\"sgv\":$line,\"date\":$CURRENT_TIME,\"dateString\":\"$(date -u -Iseconds)\",\"direction\":\"Flat\",\"device\":\"dexcom\",\"filtered\":$line,\"unfiltered\":$line,\"rssi\":100,\"noise\":1,\"sysTime\":\"$(date -u -Iseconds)\"}" $NIGHTSCOUT_ADDRESS/api/v1/entries
+  curl -X POST -H "api-secret: $API_SECRET" -H "Content-Type: application/json" -d "{\"type\":\"sgv\",\"sgv\":$cgm_value,\"date\":$CURRENT_TIME,\"dateString\":\"$(date -u -Iseconds)\",\"direction\":\"Flat\",\"device\":\"dexcom\",\"filtered\":$cgm_value,\"unfiltered\":$cgm_value,\"rssi\":100,\"noise\":1,\"sysTime\":\"$(date -u -Iseconds)\"}" $NIGHTSCOUT_ADDRESS/api/v1/entries
   sleep $DELAY
+  echo ""
 done < "$INPUT_FILE"
