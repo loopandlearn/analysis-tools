@@ -9,10 +9,8 @@ fi
 if [ "$#" -eq 5 ]; then
     NOISE_PERCENT="$5"
     echo "NOISE_PERCENT = $NOISE_PERCENT"
-    ADD_NOISE="1"
 else
     NOISE_PERCENT=0
-    ADD_NOISE="0"
 fi
 
 if [ "$#" -lt 4 ]; then
