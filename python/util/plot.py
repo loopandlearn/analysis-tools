@@ -38,7 +38,7 @@ def select_non_zero_diffs(dataframe, columnString, epsilon):
 
 def plot_initiate(nrows, ncols):
     if nrows == 2:
-        figSize = (5, 7)
+        figSize = (5, 9)
     else:
         figSize =  (5, 10)
     fig, axes = plt.subplots(nrows, ncols, figsize=figSize)
@@ -55,7 +55,10 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
     color = colorList[idx%len(colorList)]
     style = styleList[idx%len(styleList)]
     xRange = [0, duration]
-    bottom_ticks = np.arange(0, duration, step=1)
+    if duration > 4.2:
+        bottom_ticks = np.arange(0, duration, step=1)
+    else:
+        bottom_ticks = np.arange(0, duration, step=0.5)
     dfDeviceStatus = add_delta_time_column_in_hours(startTime, dfDeviceStatus)
     dfTreatments = add_delta_time_column_in_hours(startTime, dfTreatments)
 
@@ -129,7 +132,7 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
         axes[2].legend('')
 
     # anchorTuple = [1.10, 0.90]
-    anchorTuple = [1.10, 1.10]
+    anchorTuple = [1.00, 1.10]
     # Only need one legend for the plot
     axes[0].legend('')
     if legendFlag == 1:
@@ -187,7 +190,10 @@ def plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus):
     color = colorList[idx%len(colorList)]
     style = styleList[idx%len(styleList)]
     xRange = [0, duration]
-    bottom_ticks = np.arange(0, duration, step=1)
+    if duration > 4.1:
+        bottom_ticks = np.arange(0, duration, step=1)
+    else:
+        bottom_ticks = np.arange(0, duration, step=0.5)
     dfDeviceStatus = add_delta_time_column_in_hours(startTime, dfDeviceStatus)
 
     dfDeviceStatus.plot(x='elapsedHours', y='glucose', c=color, ax=axes[0],
