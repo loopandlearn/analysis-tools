@@ -15,7 +15,9 @@ fi
 
 if [ "$#" -lt 4 ]; then
     echo "Usage: ./cgm.sh <input file> <delay> <nightscout address> <api key> [noise-percent]"
-    echo "   Note noise-percent is optional, must be an integer and is applied using a random number in the script"
+    echo "   Note noise-percent is optional, must be an integer:"
+    echo "     The purpose of noise-percent is to defeat a flat-glucose check for iAPS."
+    echo "     For a value of X, a random integer between -X and X mg/dL is added to glucose."
     exit 1
 fi
 
@@ -32,7 +34,7 @@ do
   if [ ${NOISE_PERCENT} -ne "0" ]; then
     random_number=$RANDOM
     random_noise=$(($random_number - 16535))
-    noise_to_add=$((($line * $NOISE_PERCENT * $random_noise)/1653500))
+    noise_to_add=$((($NOISE_PERCENT * $random_noise)/16535))
     cgm_value=$(($line + $noise_to_add))
     # echo "Next CGM Value, cgm_with_noise (random_number, noise) = $line, ${cgm_value} (${random_number}, ${noise_to_add})"
     echo "Next CGM Value, cgm_with_noise = $line, ${cgm_value}"
