@@ -115,8 +115,8 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
         a = min(1.1*iob_ylim[0], -1)
         b = max(1.1*iob_ylim[1], 10)
     else:
-        a = min(1.1*iob_ylim[0], -1)
-        b = max(1.1*iob_ylim[1], 6)
+        a = min(1.1*iob_ylim[0], -2)
+        b = max(1.1*iob_ylim[1], 2)
     axes[1].set_ylim([a, b])
 
     if naxes == 3:
@@ -126,8 +126,8 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
             a = min(1.1*insulinCumsum_ylim[0], -1)
             b = max(1.1*insulinCumsum_ylim[1], 10)
         else:
-            a = min(1.1*insulinCumsum_ylim[0], -1)
-            b = max(1.1*insulinCumsum_ylim[1], 8)
+            a = min(1.1*insulinCumsum_ylim[0], -2)
+            b = max(1.1*insulinCumsum_ylim[1], 2)
         axes[2].set_ylim([a, b])
         axes[2].legend('')
 
