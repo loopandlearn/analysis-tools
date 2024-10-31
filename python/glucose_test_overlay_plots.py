@@ -48,7 +48,7 @@ def main():
     # 0 = none, 1 = a little verbose, 2 = very verbose
     verboseFlag=0
     duration = 5 # minimum duration, can be longer
-    cumInsulinPlotFlag = 0 # if 0, do not include third plot
+    cumInsulinPlotFlag = 1 # if 0, do not include third plot
 
     numArgs = len(sys.argv)-1
     # if insufficient arguments, provide help
@@ -61,7 +61,7 @@ def main():
     overlayID = sys.argv[2]
 
     # default values for optional arguments
-    plotSubtitle = ""
+    plotSubtitle = overlayID
     legendFlag = 1
     if numArgs >= 3:
         plotSubtitle = sys.argv[3]

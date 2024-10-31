@@ -29,35 +29,67 @@ def extract_devicestatus(content):
     glucose_time=[]
     glucose=[]
     recommendedBolus=[]
+    dataType="unknown"
+    oldSavedTime="2001-10-14T17:50:03.921"
     for line in linesRaw:
         try:
             json_dict = json.loads(line)
-            if (jdx < 2 & verboseFlag):
-                print('\n *** jdx = ', jdx)
-                printDict(json_dict)
-            loop_time.append(json_dict['loop']['timestamp'][0:-1]) # remove Z
-            iob_time.append(json_dict['loop']['iob']['timestamp'])
-            iob.append(json_dict['loop']['iob']['iob'])
-            glucose_time.append(json_dict['loop']['predicted']['startDate'])
-            glucose.append(json_dict['loop']['predicted']['values'][0])
-            recommendedBolus.append(json_dict['loop']['recommendedBolus'])
+            if 'loop' in json_dict:
+                dataType="loop"
+                loop_time.append(json_dict['loop']['timestamp'][0:-1]) # remove Z
+                iob_time.append(json_dict['loop']['iob']['timestamp'])
+                iob.append(json_dict['loop']['iob']['iob'])
+                glucose_time.append(json_dict['loop']['predicted']['startDate'])
+                glucose.append(json_dict['loop']['predicted']['values'][0])
+                recommendedBolus.append(json_dict['loop']['recommendedBolus'])
+            elif 'openaps' in json_dict:
+                dataType="openaps"
+                #openaps_data = json_dict['openaps']
+                #suggested_data = json_dict['openaps']['suggested']
+                # or enacted?
+                getWhat = 'enacted' # this was actually implemented
+                #getWhat = 'suggested'
+                #savedTime = json_dict['openaps'][getWhat]['deliverAt']
+                savedTime = json_dict['openaps'][getWhat]['timestamp']
+                if oldSavedTime == savedTime:
+                    #print("duplicate time stamp in device status")
+                    continue
+                oldSavedTime = savedTime
+                loop_time.append(savedTime[0:-1])
+                iob_time.append(savedTime)
+                iob.append(json_dict['openaps'][getWhat]['IOB'])
+                glucose_time.append(savedTime)
+                glucose_value = json_dict['openaps'][getWhat]['bg']
+                if glucose_value < 30:
+                    glucose_value = glucose_value/0.0555 # convert to mg/dL
+                glucose.append(glucose_value)
+                recommendedBolus.append(json_dict['openaps'][getWhat]['insulinForManualBolus'])
+            else:
+                print("Neither 'loop' nor 'openaps' data found in JSON")
+                continue
             if verboseFlag:
-                print("\n *** jdx = ", jdx)
-                print(loop_time[jdx], glucose_time[jdx], iob_time[jdx], glucose[jdx], iob[jdx])
+                if dataType == "loop" or dataType == "openaps":
+                    print("\n *** type and index = ", dataType, jdx)
+                    print(loop_time[jdx], glucose_time[jdx], iob_time[jdx], glucose[jdx],
+                           iob[jdx], recommendedBolus[jdx])
+                else:
+                    print("did not find loop or openaps")
             jdx=jdx+1
 
         except Exception as e:
-            print("Failure parsing json")
-            print("*** exception:")
-            print(e)
-            print("*** line:")
-            print(line)
+            if verboseFlag == 3:
+                print("Failure parsing json")
+                print("*** exception:")
+                print(e)
+                print("*** line:")
+                print(line)
             exit
 
     d = {'loop_time': loop_time, 'iob_time': iob_time, 
          'glucose_time': glucose_time,
         'IOB': iob, 'glucose': glucose, 'recommendedBolus': recommendedBolus}
     tmpDF = pd.DataFrame(d)
+    print(tmpDF)
     # split the time into a new column, use for plots 0 to 24 hour
     time_array = pd.to_datetime(tmpDF['glucose_time'])
     tmpDF['time'] = time_array
@@ -88,7 +120,9 @@ def extract_treatments(content):
     # parse the devicedata output
     tb_string = 'Temp Basal'
     ab_string = 'Correction Bolus'
+    smb_string = 'SMB'
     note_string = 'Note'
+    # warning - tests require single basal rates of 0.6 U/hr
     lost_basal = -0.60/60 # units per minute
     jdx=0
     timestamp=[]
@@ -96,26 +130,32 @@ def extract_treatments(content):
     for line in linesRaw:
         try:
             json_dict = json.loads(line)
-            #if (verboseFlag & jdx < 2):
-            #    print('\n *** jdx = ', jdx)
-            #    printDict(json_dict)
-            
-            # check eventType
             eventType = json_dict['eventType']
+            #print("eventType = ", eventType)
             if eventType == tb_string:
                 duration = json_dict['duration']
                 insulin.append(lost_basal*duration)
-                timestamp.append(json_dict['timestamp'])
+                if 'timestamp' in json_dict:
+                    timestamp.append(json_dict['timestamp'])
+                    #print("Temp Basal timestamp", json_dict['timestamp'])
+                else:
+                    timestamp.append(json_dict['created_at'])
+                    #print("Temp Basal created_at", json_dict['created_at'])
+            elif eventType == smb_string:
+                insulin.append(json_dict['insulin'])
+                timestamp.append(json_dict['created_at'])
+                #print("SMB created_at", json_dict['created_at'])
             elif eventType == ab_string:
                 insulin.append(json_dict['insulin'])
                 timestamp.append(json_dict['timestamp'])
+                #print("AB timestamp", json_dict['timestamp'])
             elif eventType == note_string:
                 test_designation=json_dict['notes']
-                print(json_dict['created_at'], json_dict['notes'])
+                print("note : ",json_dict['created_at'], json_dict['notes'])
             else:
                 print(json_dict['created_at'], eventType)
             if verboseFlag:
-                print("\n *** jdx = ", jdx)
+                print("\n *** index = ", jdx)
                 print(timestamp[jdx], insulin[jdx])
             jdx=jdx+1
 
@@ -129,6 +169,7 @@ def extract_treatments(content):
 
     d = {'timestamp': timestamp, 'insulin': insulin}
     tmpDF = pd.DataFrame(d)
+    print(tmpDF)
     # split the time into a new column, use for plots
     time_array = pd.to_datetime(tmpDF['timestamp'],utc=True)
     tmpDF['time'] = time_array
@@ -143,14 +184,21 @@ def extract_treatments(content):
 
 def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     # All tests start and end with steady state values of glucoseThreshold
-    #   All tests to date use glucoseThreshold of 110.
+    #   All tests to date use glucoseThreshold of 110
+    #   But because we now handle Trio data, which won't loop with flat glucose
+    #   We need to be more careful with the level changes
     # The test begins off when the glucose goes above glucoseThreshold (for high) or 
-    # below glucoseThreshold (for low).
+    # below glucoseThreshold (for low) by more than the indicated absDeltaAllowed.
     # During the test (at least for low), the values might go both above and below glucoseThreshold
     #   So need to limit to be first reading after beginning not at glucoseThreshold
     #   And last reading from the end not at glucoseThreshold
+    # Because we want these to work with Trio - which will not loop with flat glucose
+    # use a value that is within 1 mg/dL of glucoseThreshold.
 
     filterDataFlag = 1
+    absDeltaAllowed = 3
+    lowThreshold = glucoseThreshold - absDeltaAllowed
+    highThreshold = glucoseThreshold + absDeltaAllowed
 
     # the first and last glucose should be glucoseThreshold or the times were not correct
     if len(dfDeviceStatus) == 0:
@@ -159,7 +207,8 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
 
     firstGlucose=dfDeviceStatus.iloc[0]['glucose']
     lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
-    if not (firstGlucose == glucoseThreshold and lastGlucose == glucoseThreshold):
+    if not (abs(firstGlucose - glucoseThreshold) <= absDeltaAllowed and
+            abs(lastGlucose - glucoseThreshold) <= absDeltaAllowed):
         print("   WARNING ---- ")
         print("times are not correct - did not capture the whole test")
         print("First and Last Glucose:", firstGlucose, lastGlucose)
@@ -172,19 +221,23 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     testDetails = {} # initialize an empty dictionary
 
     # auto detect if this is a high-glucose test or a low-glucose test.
-    lowFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] < glucoseThreshold]
-    highFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] > glucoseThreshold]  
+    lowFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] < lowThreshold ]
+    highFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] > highThreshold]  
 
     if len(lowFrameIndex) == 0:
         type = 'high'
+        useThreshold = highThreshold
     elif len(highFrameIndex) == 0:
         type = 'low'
+        useThreshold = lowThreshold
     elif lowFrameIndex[0] < highFrameIndex[0]:
         print('Decided test is low')
         type = 'low'
+        useThreshold = lowThreshold
     elif lowFrameIndex[0] > highFrameIndex[0]:
         print('Decided test is high')
         type = 'high'
+        useThreshold = highThreshold
     else:
         print('Could not detect if test type was low or high')
         exit(1)
@@ -194,7 +247,7 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
         
     # limit dfDeviceStatus by time (allows a low event to exceed glucoseThreshold in middle)
     if filterDataFlag == 1:
-        dfDeviceStatus = filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type)
+        dfDeviceStatus = filter_on_glucose_devicestatus(dfDeviceStatus, useThreshold, type)
     startTime = dfDeviceStatus.iloc[0]['time']
     endTime = dfDeviceStatus.iloc[-1]['time']
     duration = (endTime - startTime).total_seconds() / 3600.
