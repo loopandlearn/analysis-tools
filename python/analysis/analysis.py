@@ -89,7 +89,8 @@ def extract_devicestatus(content):
          'glucose_time': glucose_time,
         'IOB': iob, 'glucose': glucose, 'recommendedBolus': recommendedBolus}
     tmpDF = pd.DataFrame(d)
-    print(tmpDF)
+    if verboseFlag:
+        print(tmpDF)
     # split the time into a new column, use for plots 0 to 24 hour
     time_array = pd.to_datetime(tmpDF['glucose_time'])
     tmpDF['time'] = time_array
@@ -169,7 +170,8 @@ def extract_treatments(content):
 
     d = {'timestamp': timestamp, 'insulin': insulin}
     tmpDF = pd.DataFrame(d)
-    print(tmpDF)
+    if verboseFlag:
+        print(tmpDF)
     # split the time into a new column, use for plots
     time_array = pd.to_datetime(tmpDF['timestamp'],utc=True)
     tmpDF['time'] = time_array
