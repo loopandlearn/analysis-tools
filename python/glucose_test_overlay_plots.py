@@ -107,7 +107,7 @@ def main():
         content2 = read_raw_nightscout(treatmentsFilename)
         [nightscoutNote, dfTreatments] = extract_treatments(content2)
 
-        # auto detect if this is a high-glucose test or a low-glucose test.
+        # select the range of rows to use for the test analysis using glucose of 110
         [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
         dfTreatments = filter_test_treatments(dfTreatments, testDetails)
 

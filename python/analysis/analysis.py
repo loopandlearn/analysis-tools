@@ -184,72 +184,38 @@ def extract_treatments(content):
 
 def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     # All tests start and end with steady state values of glucoseThreshold
-    #   All tests to date use glucoseThreshold of 110
     #   But because we now handle Trio data, which won't loop with flat glucose
-    #   We need to be more careful with the level changes
-    # The test begins off when the glucose goes above glucoseThreshold (for high) or 
-    # below glucoseThreshold (for low) by more than the indicated absDeltaAllowed.
-    # During the test (at least for low), the values might go both above and below glucoseThreshold
-    #   So need to limit to be first reading after beginning not at glucoseThreshold
-    #   And last reading from the end not at glucoseThreshold
-    # Because we want these to work with Trio - which will not loop with flat glucose
-    # use a value that is within 1 mg/dL of glucoseThreshold.
+    #   use a glucose range
+    # Update this function to handle any glucose trace
+    # The beginning and ending indices come from out-of-glucose-range values
 
-    filterDataFlag = 1
     absDeltaAllowed = 3
     lowThreshold = glucoseThreshold - absDeltaAllowed
     highThreshold = glucoseThreshold + absDeltaAllowed
 
-    # the first and last glucose should be glucoseThreshold or the times were not correct
-    if len(dfDeviceStatus) == 0:
-        print(f"Error - there is no data - check inputs")
+    offsetBeginning = 6
+    offsetEnd = 6
+    # first find all indices within the glucoseThreshold band
+    # indices = df.loc[(df['A'] >= 20) & (df['A'] <= 40)].index
+    idxOutRange = dfDeviceStatus.loc[(dfDeviceStatus['glucose'] < lowThreshold) |
+                                    (dfDeviceStatus['glucose'] > highThreshold)].index
+    if len(idxOutRange) < 10:
+        print("   ERROR ---- ")
+        print(" Time range is not reasonable")
+        print("   Total data set length ", len(dfDeviceStatus))
+        print("   Number of rows where glucose is outside normal band ", len(idxOutRange))
         exit(1)
-
-    firstGlucose=dfDeviceStatus.iloc[0]['glucose']
-    lastGlucose=dfDeviceStatus.iloc[-1]['glucose']
-    if not (abs(firstGlucose - glucoseThreshold) <= absDeltaAllowed and
-            abs(lastGlucose - glucoseThreshold) <= absDeltaAllowed):
-        print("   WARNING ---- ")
-        print("times are not correct - did not capture the whole test")
-        print("First and Last Glucose:", firstGlucose, lastGlucose)
-        print("   WARNING ---- ")
-        print("All data in the device files will be used")
-        filterDataFlag = 0
-        print("   WARNING ---- ")
-        #exit(0)
+    print("Total data set length ", len(dfDeviceStatus))
+    print("  first and last idx outside glucose band", idxOutRange[0], idxOutRange[-1])
+    idx0 = max(idxOutRange[0]-offsetBeginning,0)
+    idx1 = min(idxOutRange[-1]+offsetEnd,len(dfDeviceStatus)-1)
+    print("  use first, last indices of ", idx0, idx1)
 
     testDetails = {} # initialize an empty dictionary
 
-    # auto detect if this is a high-glucose test or a low-glucose test.
-    lowFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] < lowThreshold ]
-    highFrameIndex=dfDeviceStatus.index[dfDeviceStatus['glucose'] > highThreshold]  
-
-    if len(lowFrameIndex) == 0:
-        type = 'high'
-        useThreshold = highThreshold
-    elif len(highFrameIndex) == 0:
-        type = 'low'
-        useThreshold = lowThreshold
-    elif lowFrameIndex[0] < highFrameIndex[0]:
-        print('Decided test is low')
-        type = 'low'
-        useThreshold = lowThreshold
-    elif lowFrameIndex[0] > highFrameIndex[0]:
-        print('Decided test is high')
-        type = 'high'
-        useThreshold = highThreshold
-    else:
-        print('Could not detect if test type was low or high')
-        exit(1)
-    
-    #if type == 'low':
-    #    print(f"lowFrameIndex: {lowFrameIndex[0]} to {lowFrameIndex[-1]}")
-        
-    # limit dfDeviceStatus by time (allows a low event to exceed glucoseThreshold in middle)
-    if filterDataFlag == 1:
-        dfDeviceStatus = filter_on_glucose_devicestatus(dfDeviceStatus, useThreshold, type)
-    startTime = dfDeviceStatus.iloc[0]['time']
-    endTime = dfDeviceStatus.iloc[-1]['time']
+    # limit dfDeviceStatus using idx0 and idx1
+    startTime = dfDeviceStatus.iloc[idx0]['time']
+    endTime = dfDeviceStatus.iloc[idx1]['time']
     duration = (endTime - startTime).total_seconds() / 3600.
     testDetails={
                 'type': type, 
@@ -261,28 +227,6 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
                 }
 
     return testDetails, dfDeviceStatus
-
-
-def filter_on_glucose_devicestatus(dfDeviceStatus, glucoseThreshold, type):
-    # We want to limit the dfDeviceStatus frame
-    #   First row that is above or below glucoseThreshold
-    #   Last row this is above or below glucoseThreshold
-    #   Allow intermediate values to be any glucose level.
-    if type == 'low':
-        indexNotAtGlucoseThreshold = dfDeviceStatus.index[dfDeviceStatus['glucose'] < glucoseThreshold]
-    else:
-        indexNotAtGlucoseThreshold = dfDeviceStatus.index[dfDeviceStatus['glucose'] > glucoseThreshold]
-
-    idx0 = indexNotAtGlucoseThreshold[0]
-    idx1 = indexNotAtGlucoseThreshold[-1]
-    print(f"first and last index are {idx0} and {idx1} out of {len(dfDeviceStatus)}")
-    dfDeviceStatus=dfDeviceStatus.loc[idx0:idx1]
-    if len(dfDeviceStatus) == 0:
-        print(f"Error - dfDeviceStatus is empty after filtering")
-        exit(1)
-
-    dfDeviceStatus = dfDeviceStatus.reset_index(drop=True)
-    return dfDeviceStatus
 
 
 def filter_test_treatments(dfTreatments, testDetails):
