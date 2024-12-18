@@ -187,35 +187,42 @@ def extract_treatments(content):
 def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     # All tests start and end with steady state values of glucoseThreshold
     #   But because we now handle Trio data, which won't loop with flat glucose
-    #   use a glucose range
+    #   use a glucose range, keep steady state at 110, 109, 111 levels
     # Update this function to handle any glucose trace
     # The beginning and ending indices come from out-of-glucose-range values
 
     absDeltaAllowed = 3
     lowThreshold = glucoseThreshold - absDeltaAllowed
     highThreshold = glucoseThreshold + absDeltaAllowed
+    extraRowsEndOfTest = 24 # add 2 hours at the end for all tests
 
-    offsetBeginning = 6
-    offsetEnd = 6
     # first find all indices within the glucoseThreshold band
     # indices = df.loc[(df['A'] >= 20) & (df['A'] <= 40)].index
     idxOutRange = dfDeviceStatus.loc[(dfDeviceStatus['glucose'] < lowThreshold) |
-                                    (dfDeviceStatus['glucose'] > highThreshold)].index
+                                     (dfDeviceStatus['glucose'] > highThreshold)].index
     if len(idxOutRange) < 10:
         print("   ERROR ---- ")
         print(" Time range is not reasonable")
         print("   Total data set length ", len(dfDeviceStatus))
         print("   Number of rows where glucose is outside normal band ", len(idxOutRange))
         exit(1)
-    print("Total data set length ", len(dfDeviceStatus))
-    print("  first and last idx outside glucose band", idxOutRange[0], idxOutRange[-1])
-    idx0 = max(idxOutRange[0]-offsetBeginning,0)
-    idx1 = min(idxOutRange[-1]+offsetEnd,len(dfDeviceStatus)-1)
-    print("  use first, last indices of ", idx0, idx1)
+    # report information about the test
+    idx0 = max(idxOutRange[0],0)
+    idx1 = idxOutRange[-1]
+    # for type: if all idxOutRange are high - it is high
+    if min(dfDeviceStatus.iloc[idx0:idx1]['glucose']) > highThreshold:
+        type = 'high'
+    else:
+        type = 'mixed'
 
+    idx1 = min(idx1 + extraRowsEndOfTest,len(dfDeviceStatus)-1)
+    print('rowsAvail, rowsUsed, idx0, idx1, glucose(idx0), glucose(ixd1)')
+    print('\t{0:6d}, {1:10d}, {2:4d}, {3:4d}, {4:5d}, {5:5d}'.format(
+          len(dfDeviceStatus), idx1-idx0, idx0, idx1,
+          dfDeviceStatus.iloc[idx0]['glucose'], dfDeviceStatus.iloc[idx1]['glucose']))
+
+    # configure testDetails dictionary
     testDetails = {} # initialize an empty dictionary
-
-    # limit dfDeviceStatus using idx0 and idx1
     startTime = dfDeviceStatus.iloc[idx0]['time']
     endTime = dfDeviceStatus.iloc[idx1]['time']
     duration = (endTime - startTime).total_seconds() / 3600.
@@ -227,6 +234,9 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
                 'startTimeString': startTime.strftime("%Y-%m-%d %H:%M"),
                 'endTimeString': endTime.strftime("%Y-%m-%d %H:%M") 
                 }
+
+    # limit dfDeviceStatus using idx0 and idx1 before return
+    dfDeviceStatus=dfDeviceStatus[idx0:idx1]
 
     return testDetails, dfDeviceStatus
 
