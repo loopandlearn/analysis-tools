@@ -28,8 +28,8 @@ def add_delta_time_column_in_hours(startTime, dataframe):
 
 def select_non_zero_diffs(dataframe, columnString, epsilon):
     # skip time stamps where the column of interest does not change
-    # this was not working as expected in some cases
-    #  and only using tests with the 5-minute loop cycle enforced so not needed
+    # modify usage. Call it with 'elapsedHours' to remove rows that have
+    # same glucose time as other rows to get only new data
     dataframe['deltaValue'] = dataframe[columnString].diff()
     dataframe=dataframe[dataframe['deltaValue'].abs() > epsilon]
     dataframe=dataframe.reset_index(drop=True)
@@ -51,9 +51,11 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
 
     colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
                  'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
-    styleList = ['-', '--', '-.', ':']
+    styleLineList = ['-', '--', '-.', ':']
+    stylePointList = ['p', '*', 'x', '+', '.', 'd']
     color = colorList[idx%len(colorList)]
-    style = styleList[idx%len(styleList)]
+    styleLine = styleLineList[idx%len(styleLineList)]
+    stylePoint = stylePointList[idx%len(stylePointList)]
     xRange = [0, duration]
     if duration > 4.2:
         bottom_ticks = np.arange(0, duration, step=1)
@@ -62,26 +64,37 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
     dfDeviceStatus = add_delta_time_column_in_hours(startTime, dfDeviceStatus)
     dfTreatments = add_delta_time_column_in_hours(startTime, dfTreatments)
 
-    '''
-    print(dfDeviceStatus)
+    verboseFlag = 1
+    if verboseFlag == 2:
+        print(dfDeviceStatus.iloc[0:15])
+        print(dfDeviceStatus.iloc[-15:-1])
+    if verboseFlag:
+        print("Lengths for dfDeviceStatus, dfTreatments", len(dfDeviceStatus), len(dfTreatments))
 
-    epsilon = 0.06
-    dfIOB = select_non_zero_diffs(dfDeviceStatus, 'IOB', epsilon)
-    epsilon = 0.02
-    dfInsulinCumSum = select_non_zero_diffs(dfTreatments, 'insulinCumsum', epsilon)
-    print(dfIOB)
-    print(dfTreatments)
-    print(dfInsulinCumSum)
-    '''
+    filterFlag = 1
+    if filterFlag:
+        epsilon = 0.06
+        dfDeviceStatus = select_non_zero_diffs(dfDeviceStatus, 'elapsedHours', epsilon)
+
+    print("Initial IOB is ", dfDeviceStatus.iloc[0]['IOB'])
+
+    if verboseFlag == 2:
+        print("After filtering:")
+        print(dfDeviceStatus.iloc[0:15])
+        print(dfDeviceStatus.iloc[-15:-1])
+        print(dfTreatments)
+    if verboseFlag:
+        print("Remove duplicates elapsedHours from dfDeviceStatus", len(dfDeviceStatus))
 
     # plot glucose each time to ensure alignment
     dfDeviceStatus.plot(x='elapsedHours', y='glucose', c=color, ax=axes[0],
-                        style=style, xlim=xRange, xticks=bottom_ticks)
+                        linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
     dfDeviceStatus.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1],
-                        style=style, xlim=xRange, xticks=bottom_ticks)
+                        linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
     if naxes == 3:
         dfTreatments.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2],
-                        style=style, xlim=xRange, xticks=bottom_ticks)
+                        linestyle=styleLine, marker=stylePoint, linewidth=0.2,
+                        xlim=xRange, xticks=bottom_ticks)
     plt.draw()
     plt.pause(0.001)
 
@@ -100,6 +113,7 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
     # set limits for BG (always in mg/dl)
     axes[0].set_ylabel("Glucose (mg/dL)")
     bg_ylim = axes[0].get_ylim()
+    print(testDetails['type'])
     if testDetails['type'] == 'high':
         a = min(bg_ylim[0], 0)
         b = max(1.1*bg_ylim[1], 300)
@@ -149,7 +163,7 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
 def plot_save(outFile, fig):
     plt.draw()
     plt.pause(0.001)
-    plt.pause(1)
+    plt.pause(2)
     plt.savefig(outFile)
     plt.close(fig)
     return
