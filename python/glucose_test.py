@@ -28,18 +28,16 @@ def help(reportFilename):
     print("       input: arg2_devicestatus.txt, arg2_treatments.txt")
     print("       output: plot_arg2.png")
     print("    arg3 - optional label, otherwise uses note in treatments")
-    print("    arg4 - optional output filename, otherwise uses", reportFilename)
+    print("    arg4 - optional verboseFlag (0, 1, 2)")
+    print("    arg5 - optional output filename, otherwise uses", reportFilename)
 
 
 def main():
-    # 0 = none, 1 = a little verbose, 2 = very verbose
-    verboseFlag=0 
     duration = 5 # plot all tests with fixed hour duration
     # modify this if test is longer than fixed hour duration, e.g., very bad night
     legendFlag = 1 # include legend
 
     numArgs = len(sys.argv)-1
-    reportFilename="glucose_impulse_response.csv"
     # if insufficient arguments, provide help
     if numArgs < 2:
         help(reportFilename)
@@ -48,13 +46,17 @@ def main():
         scriptname = sys.argv[0]
         foldername = sys.argv[1]
         timestamp_id = sys.argv[2]
-    # optional arguments
+    # optional arguments for these default values:
     externalLabel=""
+    verboseFlag=0 # 0 = none, 1 = a little verbose, 2 = very verbose
+    reportFilename="glucose_impulse_response.csv"
     
     if numArgs >= 3:
         externalLabel = sys.argv[3]
-    if numArgs == 4:
-        reportFilename = sys.argv[4]
+    if numArgs >= 4:
+        verboseFlag = int(sys.argv[4])
+    if numArgs == 5:
+        reportFilename = sys.argv[5]
     
     devicestatusFilename = timestamp_id + "_devicestatus.txt"
     treatmentsFilename = timestamp_id + "_treatments.txt"
