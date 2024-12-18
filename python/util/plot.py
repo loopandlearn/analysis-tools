@@ -68,23 +68,21 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
     if verboseFlag == 2:
         print(dfDeviceStatus.iloc[0:15])
         print(dfDeviceStatus.iloc[-15:-1])
-    if verboseFlag:
-        print("Lengths for dfDeviceStatus, dfTreatments", len(dfDeviceStatus), len(dfTreatments))
 
     filterFlag = 1
     if filterFlag:
         epsilon = 0.06
         dfDeviceStatus = select_non_zero_diffs(dfDeviceStatus, 'elapsedHours', epsilon)
 
-    print("Initial IOB is ", dfDeviceStatus.iloc[0]['IOB'])
+    initialIOB = dfDeviceStatus.iloc[0]['IOB']
+
+    print('\tInitial IOB {0:.2f}, rows uniq elapsedHours {1:d}'.format(initialIOB, len(dfDeviceStatus)))
 
     if verboseFlag == 2:
         print("After filtering:")
         print(dfDeviceStatus.iloc[0:15])
         print(dfDeviceStatus.iloc[-15:-1])
         print(dfTreatments)
-    if verboseFlag:
-        print("Remove duplicates elapsedHours from dfDeviceStatus", len(dfDeviceStatus))
 
     # plot glucose each time to ensure alignment
     dfDeviceStatus.plot(x='elapsedHours', y='glucose', c=color, ax=axes[0],
