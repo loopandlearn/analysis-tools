@@ -191,15 +191,15 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     # Update this function to handle any glucose trace
     # The beginning and ending indices come from out-of-glucose-range values
 
-    absDeltaAllowed = 3
+    absDeltaAllowed = 2
     lowThreshold = glucoseThreshold - absDeltaAllowed
     highThreshold = glucoseThreshold + absDeltaAllowed
-    extraRowsEndOfTest = 24 # add 2 hours at the end for all tests
+    extraRowsEndOfTest = 48 # add rows at end of tests
 
     # first find all indices within the glucoseThreshold band
     # indices = df.loc[(df['A'] >= 20) & (df['A'] <= 40)].index
-    idxOutRange = dfDeviceStatus.loc[(dfDeviceStatus['glucose'] < lowThreshold) |
-                                     (dfDeviceStatus['glucose'] > highThreshold)].index
+    idxOutRange = dfDeviceStatus.loc[(dfDeviceStatus['glucose'] <= lowThreshold) |
+                                     (dfDeviceStatus['glucose'] >= highThreshold)].index
     if len(idxOutRange) < 10:
         print("   ERROR ---- ")
         print(" Time range is not reasonable")
@@ -216,9 +216,9 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
         type = 'mixed'
 
     idx1 = min(idx1 + extraRowsEndOfTest,len(dfDeviceStatus)-1)
-    print('rowsAvail, rowsUsed, idx0, idx1, glucose(idx0), glucose(ixd1)')
+    print('\trowsAvail, rowsUsed, idx0, idx1, glucose: idx0, ixd1')
     print('\t{0:6d}, {1:10d}, {2:4d}, {3:4d}, {4:5d}, {5:5d}'.format(
-          len(dfDeviceStatus), idx1-idx0, idx0, idx1,
+          len(dfDeviceStatus), idx1-idx0+1, idx0, idx1,
           dfDeviceStatus.iloc[idx0]['glucose'], dfDeviceStatus.iloc[idx1]['glucose']))
 
     # configure testDetails dictionary
