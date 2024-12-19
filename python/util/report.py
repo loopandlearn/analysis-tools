@@ -50,7 +50,7 @@ def report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments):
 
     if len(reportFilename) > 1:
         write_test_result(reportFilename, resultsDict)
-        print('  Row appended to ', reportFilename)
+        #print('  Row appended to ', reportFilename)
 
     return resultsDict
 
