@@ -38,6 +38,7 @@ def main():
     legendFlag = 1 # include legend
 
     numArgs = len(sys.argv)-1
+    styleOffset = 0 # don't offer as an option when only plotting one test
     # if insufficient arguments, provide help
     if numArgs < 2:
         help(reportFilename)
@@ -105,7 +106,7 @@ def main():
     # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
     # TODO: add ability to plot more than one test on a given figure
     plot_single_test(plotFilename, plotLabel, testDetails, legendFlag, duration, testDetails['startTime'],
-                     dfDeviceStatus, dfTreatments)
+                     dfDeviceStatus, dfTreatments, styleOffset)
     print(' *** plot created:     ', plotFilename)
     print(' END of Analysis\n')
 

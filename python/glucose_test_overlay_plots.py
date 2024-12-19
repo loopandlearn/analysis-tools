@@ -37,7 +37,8 @@ def help():
     print("    arg2 - overlayID - see below")
     print("    arg3 - verboseFlag - 0 = none, 1 = a little verbose, 2 = very verbose")
     print("    arg4 - plotSubtitle - if provided and not empty string")
-    print("    arg5 - legendFlag - if provided, legends are not shown")
+    print("    arg5 - styleOffset - optional, shift style index")
+    print("    arg6 - legendFlag - if provided, legends are not shown")
     print("           legends are not shown if > 5 test are overlaid\n")
     print(" input_for_arg2.txt : text file with list of identifiers")
     print("       each identifier is used to read in data and overlay on a single plot")
@@ -63,12 +64,15 @@ def main():
     # 0 = none, 1 = a little verbose, 2 = very verbose
     verboseFlag=0
     plotSubtitle = overlayID
+    styleOffset = 0
     legendFlag = 1
     if numArgs >= 3:
         verboseFlag = int(sys.argv[3])
     if numArgs >= 4:
         plotSubtitle = sys.argv[4]
-    if numArgs == 5:
+    if numArgs >= 5:
+        styleOffset = int(sys.argv[5])
+    if numArgs == 6:
         legendFlag = 0
 
     inputname = f'input_for_{overlayID}.txt'
@@ -126,7 +130,8 @@ def main():
             duration = testDetails['durationInHours']
 
         [fig, axes] = plot_one_test(fig, axes, testIdx, duration, 
-                               testDetails['startTime'], dfDeviceStatus, dfTreatments)
+                               testDetails['startTime'], dfDeviceStatus, dfTreatments,
+                               styleOffset)
         testIdx += 1
 
     # plot pandas dataframe containing Nightscout data

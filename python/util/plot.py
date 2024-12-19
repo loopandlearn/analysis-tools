@@ -46,16 +46,18 @@ def plot_initiate(nrows, ncols):
     return fig, axes
 
 
-def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
+def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments, styleOffset):
     naxes=len(axes)
 
     colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
                  'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
     styleLineList = ['-', '--', '-.', ':']
     stylePointList = ['p', '*', 'x', '+', '.', 'd']
-    color = colorList[idx%len(colorList)]
-    styleLine = styleLineList[idx%len(styleLineList)]
-    stylePoint = stylePointList[idx%len(stylePointList)]
+    # sometimes want to offset the colors to compare items
+    styleIdx = idx+styleOffset
+    color = colorList[styleIdx%len(colorList)]
+    styleLine = styleLineList[styleIdx%len(styleLineList)]
+    stylePoint = stylePointList[styleIdx%len(stylePointList)]
     xRange = [0, duration]
     if duration > 4.2:
         bottom_ticks = np.arange(0, duration, step=1)
@@ -111,7 +113,6 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
     # set limits for BG (always in mg/dl)
     axes[0].set_ylabel("Glucose (mg/dL)")
     bg_ylim = axes[0].get_ylim()
-    print(testDetails['type'])
     if testDetails['type'] == 'high':
         a = min(bg_ylim[0], 0)
         b = max(1.1*bg_ylim[1], 300)
@@ -167,13 +168,15 @@ def plot_save(outFile, fig):
     return
 
 
-def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTime, dfDeviceStatus, dfTreatments):
+def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTime, dfDeviceStatus,
+                     dfTreatments, styleOffset):
     nrows = 3
     ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
     idx = 0
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}\n')
-    [fig, axes] = plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments)
+    [fig, axes] = plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus,
+                                dfTreatments, styleOffset)
     [fig, axes] = plot_format(fig, axes, testDetails, "", titleString, legendFlag)
     plot_save(outFile, fig)
     return
