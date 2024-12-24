@@ -93,7 +93,7 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
                         linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
     if naxes == 3:
         dfTreatments.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2],
-                        linestyle=styleLine, marker=stylePoint, linewidth=0.2,
+                        linestyle=styleLine, marker=stylePoint, linewidth=0.5,
                         xlim=xRange, xticks=bottom_ticks)
     plt.draw()
     plt.pause(0.001)
