@@ -25,7 +25,7 @@ def help(reportFilename):
     print("  python glucose_test.py arg1 arg2 [arg3] [arg4]")
     print("    arg1 - path for data I/O")
     print("    arg2 - timestamp identifier (used for I/O)")
-    print("       input: arg2_devicestatus.txt, arg2_treatments.txt")
+    print("       input: arg2_devicestatus.json, arg2_treatments.json")
     print("       output: plot_arg2.png")
     print("    arg3 - optional label, otherwise uses note in treatments")
     print("    arg4 - optional verboseFlag (0, 1, 2)")
@@ -59,8 +59,8 @@ def main():
     if numArgs == 5:
         reportFilename = sys.argv[5]
     
-    devicestatusFilename = timestamp_id + "_devicestatus.txt"
-    treatmentsFilename = timestamp_id + "_treatments.txt"
+    devicestatusFilename = timestamp_id + "_devicestatus.json"
+    treatmentsFilename = timestamp_id + "_treatments.json"
     plotname = "plot_" + timestamp_id + ".png"
     plotFilename = foldername + "/" + plotname
 

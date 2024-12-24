@@ -97,8 +97,8 @@ def main():
 
     for test in testList:
         # begin filling in testIO
-        devicestatusFilename = test + "_devicestatus.txt"
-        treatmentsFilename = test + "_treatments.txt"
+        devicestatusFilename = test + "_devicestatus.json"
+        treatmentsFilename = test + "_treatments.json"
         externalLabel = testLabel[testIdx]
 
         content1 = read_raw_nightscout(devicestatusFilename)
