@@ -31,7 +31,7 @@ def report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments):
     headerString = 'StartTime, MinutesToMaxIOB, MinutesToMaxCumInsulin, ' + \
                     'StartIOB, maxIOB, adjMaxIOB, finalIOB, ' + \
                     'maxCumInsulin, finalCumInsulin, ' + \
-                    'ExternalLabel, NightscoutNote, Plotname'
+                    'ExternalLabel, ns_notes, Plotname'
     
     # set up a dictionary of the test results
     resultsDict = {'headerString': headerString,
@@ -45,7 +45,7 @@ def report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments):
                 'maxCumInsulin': maxCumInsulin,
                 'finalCumInsulin': finalCumInsulin,
                 'externalLabel': testIO['externalLabel'],
-                'nightscoutNote': testIO['nightscoutNote'],
+                'ns_notes': testIO['ns_notes'],
                 'plotname': testIO['plotname'] }
 
     if len(reportFilename) > 1:
@@ -76,7 +76,7 @@ def write_test_result(reportFilename, resultsDict):
     stream_out.write('"')
     stream_out.write(f"{resultsDict['externalLabel']}")
     stream_out.write('","')
-    stream_out.write(f"{resultsDict['nightscoutNote']}")
+    stream_out.write(f"{resultsDict['ns_notes']}")
     stream_out.write('",')
     stream_out.write(f"{resultsDict['plotname']}")
     stream_out.write('\n')

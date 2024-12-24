@@ -106,7 +106,6 @@ def extract_devicestatus(content):
 def extract_treatments(content):
 
     dfTreatments = pd.DataFrame({})
-    test_designation = "Not Provided"
 
     # split by newline:
     linesRaw = content.splitlines()
@@ -128,6 +127,9 @@ def extract_treatments(content):
     jdx=0
     timestamp=[]
     insulin=[]
+    insulinType=[]
+    ns_notes=[]
+    ns_notes_timestamp = []
     for line in linesRaw:
         try:
             json_dict = json.loads(line)
@@ -136,6 +138,7 @@ def extract_treatments(content):
             if eventType == tb_string:
                 duration = json_dict['duration']
                 insulin.append(lost_basal*duration)
+                insulinType.append(json_dict['insulinType'])
                 if 'timestamp' in json_dict:
                     timestamp.append(json_dict['timestamp'])
                     #print("Temp Basal timestamp", json_dict['timestamp'])
@@ -144,15 +147,18 @@ def extract_treatments(content):
                     #print("Temp Basal created_at", json_dict['created_at'])
             elif eventType == smb_string:
                 insulin.append(json_dict['insulin'])
+                insulinType.append(json_dict['insulinType'])
                 timestamp.append(json_dict['created_at'])
                 #print("SMB created_at", json_dict['created_at'])
             elif eventType == ab_string:
+                insulinType.append(json_dict['insulinType'])
                 insulin.append(json_dict['insulin'])
                 timestamp.append(json_dict['timestamp'])
                 #print("AB timestamp", json_dict['timestamp'])
             elif eventType == note_string:
-                test_designation=json_dict['notes']
-                print("note : ",json_dict['created_at'], json_dict['notes'])
+                ns_notes.append(json_dict['notes'])
+                ns_notes_timestamp.append(json_dict['created_at'])
+                #print("note : ",json_dict['created_at'], json_dict['notes'])
             else:
                 print(json_dict['created_at'], eventType)
             if verboseFlag:
@@ -168,7 +174,7 @@ def extract_treatments(content):
             print(line)
             exit
 
-    d = {'timestamp': timestamp, 'insulin': insulin}
+    d = {'timestamp': timestamp, 'insulin': insulin, 'insulinType': insulinType}
     tmpDF = pd.DataFrame(d)
     if verboseFlag:
         print(tmpDF)
@@ -181,7 +187,7 @@ def extract_treatments(content):
     # reindex the dataframe
     dfTreatments = dfTreatments.reset_index(drop=True)
 
-    return test_designation, dfTreatments
+    return dfTreatments, ns_notes, ns_notes_timestamp
 
 
 def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):

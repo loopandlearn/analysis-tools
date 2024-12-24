@@ -73,7 +73,7 @@ def main():
 
     treatmentsFilename = foldername + "/" + treatmentsFilename
     content2 = read_raw_nightscout(treatmentsFilename)
-    [nightscoutNote, dfTreatments] = extract_treatments(content2)
+    [dfTreatments, ns_notes, ns_notes_timestamp] = extract_treatments(content2)
     if verboseFlag == 2:
         print(" *** dfTreatments:")
         print(dfTreatments)
@@ -87,7 +87,8 @@ def main():
         print(dfDeviceStatus)
         print(dfTreatments)
     # combine testDetails with older concept of TestIO
-    testDetails['nightscoutNote']=nightscoutNote
+    testDetails['ns_notes']=ns_notes
+    testDetails['ns_notes_timestamp']=ns_notes_timestamp
     testDetails['externalLabel']=externalLabel
     testDetails['plotname']=plotname
     if verboseFlag == 1:
