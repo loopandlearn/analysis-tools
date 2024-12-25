@@ -134,11 +134,15 @@ def extract_treatments(content):
         try:
             json_dict = json.loads(line)
             eventType = json_dict['eventType']
+            if 'insulinType' in json_dict:
+                thisType = json_dict['insulinType']
+            else:
+                thisType = "unknown"
             #print("eventType = ", eventType)
             if eventType == tb_string:
                 duration = json_dict['duration']
                 insulin.append(lost_basal*duration)
-                insulinType.append(json_dict['insulinType'])
+                insulinType.append(thisType)
                 if 'timestamp' in json_dict:
                     timestamp.append(json_dict['timestamp'])
                     #print("Temp Basal timestamp", json_dict['timestamp'])
@@ -147,12 +151,12 @@ def extract_treatments(content):
                     #print("Temp Basal created_at", json_dict['created_at'])
             elif eventType == smb_string:
                 insulin.append(json_dict['insulin'])
-                insulinType.append(json_dict['insulinType'])
+                insulinType.append(thisType)
                 timestamp.append(json_dict['created_at'])
                 #print("SMB created_at", json_dict['created_at'])
             elif eventType == ab_string:
-                insulinType.append(json_dict['insulinType'])
                 insulin.append(json_dict['insulin'])
+                insulinType.append(thisType)
                 timestamp.append(json_dict['timestamp'])
                 #print("AB timestamp", json_dict['timestamp'])
             elif eventType == note_string:
@@ -256,7 +260,9 @@ def filter_test_treatments(dfTreatments, testDetails):
     # perform cumsum only after limiting time in dfTreatments
     dfTreatments = dfTreatments.reset_index(drop=True)
     dfTreatments['insulinCumsum'] = dfTreatments['insulin'].cumsum()
+    dfTemp = dfTreatments[dfTreatments['insulin']>0]
+    minBolusIncrement = dfTemp['insulin'].min()
     #print(dfTreatments)
 
-    return dfTreatments
+    return dfTreatments, minBolusIncrement
 

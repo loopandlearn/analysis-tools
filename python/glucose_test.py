@@ -80,13 +80,14 @@ def main():
 
     # select the range of rows to use for the test analysis using glucose of 110
     [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
-    dfTreatments = filter_test_treatments(dfTreatments, testDetails)
+    [dfTreatments, minBolusIncrement] = filter_test_treatments(dfTreatments, testDetails)
 
     if verboseFlag == 2:
         print_dict(testDetails)
         print(dfDeviceStatus)
         print(dfTreatments)
     # combine testDetails with older concept of TestIO
+    testDetails['minBolusIncrement']=minBolusIncrement
     testDetails['ns_notes']=ns_notes
     testDetails['ns_notes_timestamp']=ns_notes_timestamp
     testDetails['externalLabel']=externalLabel
@@ -106,10 +107,11 @@ def main():
     # always beginning of input filename (YYYY-MM-DDTHH for the output plot)
     # TODO: add indicators for time and value of max IOB, CumIns and indicate on plots
     # TODO: add ability to plot more than one test on a given figure
-    plot_single_test(plotFilename, plotLabel, testDetails, legendFlag, duration, testDetails['startTime'],
+    plot_single_test(plotFilename, plotLabel, testDetails, legendFlag,
                      dfDeviceStatus, dfTreatments, styleOffset)
-    print(' *** plot created:     ', plotFilename)
-    print(' END of Analysis\n')
+    if verboseFlag == 1:
+        print(' *** plot created:     ', plotFilename)
+        print(' END of Analysis\n')
 
 
 if __name__ == "__main__":

@@ -114,8 +114,9 @@ def main():
         # select the range of rows to use for the test analysis using glucose of 110
         print(test,":")
         [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
-        dfTreatments = filter_test_treatments(dfTreatments, testDetails)
+        [dfTreatments, minBolusIncrement] = filter_test_treatments(dfTreatments, testDetails)
 
+        testDetails['minBolusIncrement']=minBolusIncrement
         testDetails['ns_notes']=ns_notes
         testDetails['ns_notes_timestamp']=ns_notes_timestamp
         testDetails['externalLabel']=externalLabel

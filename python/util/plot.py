@@ -46,7 +46,7 @@ def plot_initiate(nrows, ncols):
     return fig, axes
 
 
-def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments, styleOffset):
+def plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus, dfTreatments, styleOffset):
     naxes=len(axes)
 
     colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
@@ -58,6 +58,10 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
     color = colorList[styleIdx%len(colorList)]
     styleLine = styleLineList[styleIdx%len(styleLineList)]
     stylePoint = stylePointList[styleIdx%len(stylePointList)]
+
+    duration = testDetails['durationInHours']
+    startTime = testDetails['startTime']
+
     xRange = [0, duration]
     if duration > 4.2:
         bottom_ticks = np.arange(0, duration, step=1)
@@ -78,7 +82,13 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
 
     initialIOB = dfDeviceStatus.iloc[0]['IOB']
 
-    print('\tInitial IOB {0:.2f}, rows uniq elapsedHours {1:d}'.format(initialIOB, len(dfDeviceStatus)))
+    if dfTreatments.iloc[0]['insulinType'] == dfTreatments.iloc[-1]['insulinType']:
+        insulinString = dfTreatments.iloc[0]['insulinType']
+    else:
+        insulinString = dfTreatments.iloc[0]['insulinType'] + '&' + dfTreatments.iloc[-1]['insulinType']
+    print('\tInitial IOB {0:.2f}, {1}, minBolusIncrement {2:.2f}, rows uniq elapsedHours {3:d}'.format(
+        initialIOB, insulinString, testDetails['minBolusIncrement'], len(dfDeviceStatus)))
+
 
     if verboseFlag == 2:
         print("After filtering:")
@@ -168,42 +178,54 @@ def plot_save(outFile, fig):
     return
 
 
-def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTime, dfDeviceStatus,
+def plot_single_test(outFile, label, testDetails, legendFlag, dfDeviceStatus,
                      dfTreatments, styleOffset):
     nrows = 3
     ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
     idx = 0
+
+    duration = testDetails['durationInHours']
+    startTime = testDetails['startTime']
+
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}\n')
-    [fig, axes] = plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus,
+    [fig, axes] = plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus,
                                 dfTreatments, styleOffset)
     [fig, axes] = plot_format(fig, axes, testDetails, "", titleString, legendFlag)
     plot_save(outFile, fig)
     return
 
 
-def plot_glucose(outFile, label, legendFlag, duration, startTime, dfDeviceStatus):
+def plot_glucose(outFile, label, legendFlag, testDetails, dfDeviceStatus):
     nrows = 2
     ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
     oneHrInSec = 3600.0
+
+    duration = testDetails['durationInHours']
+    startTime = testDetails['startTime']
+
     if duration == 0:
         duration= (dfDeviceStatus.iloc[-1]['time']- 
                    dfDeviceStatus.iloc[0]['time']).total_seconds()/oneHrInSec
     idx = 0
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
-    [fig, axes] = plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus)
+    [fig, axes] = plot_one_glucose(fig, axes, idx, testDetails, dfDeviceStatus)
     axes[0].set_title(titleString)
     plot_save(outFile, fig)
     return
 
 
-def plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus):
+def plot_one_glucose(fig, axes, idx, testDetails, dfDeviceStatus):
     colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
                  'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
     styleList = ['-', '--', '-.', ':']
     color = colorList[idx%len(colorList)]
     style = styleList[idx%len(styleList)]
+
+    duration = testDetails['durationInHours']
+    startTime = testDetails['startTime']
+
     xRange = [0, duration]
     if duration > 4.1:
         bottom_ticks = np.arange(0, duration, step=1)
