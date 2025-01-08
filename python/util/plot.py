@@ -49,8 +49,8 @@ def plot_initiate(nrows, ncols):
 def plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus, dfTreatments, styleOffset):
     naxes=len(axes)
 
-    colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
-                 'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
+    colorList = ['black', 'magenta', 'cyan', 'green', 'darkgoldenrod', 'purple', 
+                 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
     styleLineList = ['-', '--', '-.', ':']
     stylePointList = ['p', '*', 'x', '+', '.', 'd']
     # sometimes want to offset the colors to compare items
@@ -59,7 +59,7 @@ def plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus, dfTreatments, sty
     styleLine = styleLineList[styleIdx%len(styleLineList)]
     stylePoint = stylePointList[styleIdx%len(stylePointList)]
 
-    duration = testDetails['durationInHours']
+    duration = testDetails['durationInHours']+1
     startTime = testDetails['startTime']
 
     xRange = [0, duration]
@@ -82,12 +82,13 @@ def plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus, dfTreatments, sty
 
     initialIOB = dfDeviceStatus.iloc[0]['IOB']
 
-    if dfTreatments.iloc[0]['insulinType'] == dfTreatments.iloc[-1]['insulinType']:
-        insulinString = dfTreatments.iloc[0]['insulinType']
-    else:
-        insulinString = dfTreatments.iloc[0]['insulinType'] + '&' + dfTreatments.iloc[-1]['insulinType']
-    print('\tInitial IOB {0:.2f}, {1}, minBolusIncrement {2:.2f}, rows uniq elapsedHours {3:d}'.format(
-        initialIOB, insulinString, testDetails['minBolusIncrement'], len(dfDeviceStatus)))
+    if len(dfTreatments) > 10:
+        if dfTreatments.iloc[0]['insulinType'] == dfTreatments.iloc[-1]['insulinType']:
+            insulinString = dfTreatments.iloc[0]['insulinType']
+        else:
+            insulinString = dfTreatments.iloc[0]['insulinType'] + '&' + dfTreatments.iloc[-1]['insulinType']
+        print('\tInitial IOB {0:.2f}, {1}, minBolusIncrement {2:.2f}, rows uniq elapsedHours {3:d}'.format(
+            initialIOB, insulinString, testDetails['minBolusIncrement'], len(dfDeviceStatus)))
 
 
     if verboseFlag == 2:
@@ -101,7 +102,7 @@ def plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus, dfTreatments, sty
                         linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
     dfDeviceStatus.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1],
                         linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
-    if naxes == 3:
+    if naxes == 3 & len(dfTreatments) >= 10:
         dfTreatments.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2],
                         linestyle=styleLine, marker=stylePoint, linewidth=0.5,
                         xlim=xRange, xticks=bottom_ticks)
@@ -132,14 +133,15 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
     axes[0].set_ylim([a, b])
 
     # handle case where IOB is never zero for entire plot
+    #  labels are just above this plot, so increase autoscale for max to 1.3 times
     axes[1].set_ylabel("IOB (U)")
     iob_ylim = axes[1].get_ylim()
     if testDetails['type'] == 'high':
         a = min(1.1*iob_ylim[0], -1)
-        b = max(1.1*iob_ylim[1], 10)
+        b = max(1.3*iob_ylim[1], 10)
     else:
         a = min(1.1*iob_ylim[0], -2)
-        b = max(1.1*iob_ylim[1], 2)
+        b = max(1.3*iob_ylim[1], 2)
     axes[1].set_ylim([a, b])
 
     if naxes == 3:
@@ -181,11 +183,12 @@ def plot_save(outFile, fig):
 def plot_single_test(outFile, label, testDetails, legendFlag, dfDeviceStatus,
                      dfTreatments, styleOffset):
     nrows = 3
+    if len(dfTreatments) < 10:
+        nrows = 2
     ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
     idx = 0
 
-    duration = testDetails['durationInHours']
     startTime = testDetails['startTime']
 
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}\n')
@@ -202,7 +205,7 @@ def plot_glucose(outFile, label, legendFlag, testDetails, dfDeviceStatus):
     [fig, axes] = plot_initiate(nrows, ncols)
     oneHrInSec = 3600.0
 
-    duration = testDetails['durationInHours']
+    duration = testDetails['durationInHours']+1 # go past end of test
     startTime = testDetails['startTime']
 
     if duration == 0:
@@ -223,7 +226,7 @@ def plot_one_glucose(fig, axes, idx, testDetails, dfDeviceStatus):
     color = colorList[idx%len(colorList)]
     style = styleList[idx%len(styleList)]
 
-    duration = testDetails['durationInHours']
+    duration = testDetails['durationInHours']+1 # go past end of test
     startTime = testDetails['startTime']
 
     xRange = [0, duration]

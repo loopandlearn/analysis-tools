@@ -48,7 +48,7 @@ def help():
 
 def main():
     duration = 5 # minimum duration, can be longer
-    cumInsulinPlotFlag = 1 # if 0, do not include third plot
+    cumInsulinPlotFlag = 0 # if 0, do not include third plot
 
     numArgs = len(sys.argv)-1
     # if insufficient arguments, provide help
@@ -131,8 +131,7 @@ def main():
         if testDetails['durationInHours'] > duration:
             duration = testDetails['durationInHours']
 
-        [fig, axes] = plot_one_test(fig, axes, testIdx, duration, 
-                               testDetails['startTime'], dfDeviceStatus, dfTreatments,
+        [fig, axes] = plot_one_test(fig, axes, testIdx, testDetails, dfDeviceStatus, dfTreatments,
                                styleOffset)
         testIdx += 1
 

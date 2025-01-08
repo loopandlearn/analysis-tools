@@ -82,6 +82,13 @@ def main():
     [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
     [dfTreatments, minBolusIncrement] = filter_test_treatments(dfTreatments, testDetails)
 
+    if verboseFlag == 3:
+        csvDeviceStatus = foldername + "/" + timestamp_id + "_devicestatus.csv"
+        csvTreatment = foldername + "/" + timestamp_id + "_treatments.csv"
+        dfDeviceStatus.to_csv(csvDeviceStatus)
+        dfTreatments.to_csv(csvTreatment)
+        print(timestamp_id, ", ", externalLabel)
+    
     if verboseFlag == 2:
         print_dict(testDetails)
         print(dfDeviceStatus)

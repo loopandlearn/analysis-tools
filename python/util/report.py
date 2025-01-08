@@ -21,12 +21,18 @@ def report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments):
     iobTime=iobTimeDF.iloc[0]['time']
     iobDeltaTimeMinutes=round((iobTime - startTime).seconds/60.0)
 
-    # cumulative insulin stats
-    maxCumInsulin=dfTreatments['insulinCumsum'].max()
-    finalCumInsulin=dfTreatments.iloc[-1]['insulinCumsum']
-    ciTimeDF=dfTreatments[(dfTreatments['insulinCumsum'] > (maxCumInsulin-0.01))]
-    ciTime=ciTimeDF.iloc[0]['time']
-    ciDeltaTimeMinutes=round((ciTime - startTime).seconds/60.0)
+    # cumulative insulin stats valid only when there are treatments
+    if len(dfTreatments) > 2:
+        maxCumInsulin=dfTreatments['insulinCumsum'].max()
+        finalCumInsulin=dfTreatments.iloc[-1]['insulinCumsum']
+        ciTimeDF=dfTreatments[(dfTreatments['insulinCumsum'] > (maxCumInsulin-0.01))]
+        ciTime=ciTimeDF.iloc[0]['time']
+        ciDeltaTimeMinutes=round((ciTime - startTime).seconds/60.0)
+    else:
+        maxCumInsulin = 0
+        finalCumInsulin = 0
+        ciDeltaTimeMinutes = 0
+
 
     headerString = 'StartTime, MinutesToMaxIOB, MinutesToMaxCumInsulin, ' + \
                     'StartIOB, maxIOB, adjMaxIOB, finalIOB, ' + \

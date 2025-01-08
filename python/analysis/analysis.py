@@ -201,6 +201,7 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     # Update this function to handle any glucose trace
     # The beginning and ending indices come from out-of-glucose-range values
 
+    noisy = 0
     absDeltaAllowed = 2
     lowThreshold = glucoseThreshold - absDeltaAllowed
     highThreshold = glucoseThreshold + absDeltaAllowed
@@ -211,11 +212,13 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     idxOutRange = dfDeviceStatus.loc[(dfDeviceStatus['glucose'] <= lowThreshold) |
                                      (dfDeviceStatus['glucose'] >= highThreshold)].index
     if len(idxOutRange) < 10:
-        print("   ERROR ---- ")
+        print("   WARNING ---- ")
         print(" Time range is not reasonable")
         print("   Total data set length ", len(dfDeviceStatus))
         print("   Number of rows where glucose is outside normal band ", len(idxOutRange))
-        exit(1)
+        idxOutRange = dfDeviceStatus.loc[dfDeviceStatus['glucose'] >= 0].index
+    if noisy:
+        print(idxOutRange)
     # report information about the test
     idx0 = max(idxOutRange[0],0)
     idx1 = idxOutRange[-1]
@@ -253,6 +256,9 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
 
 def filter_test_treatments(dfTreatments, testDetails):
     # limit dfTreatments by time
+    # handle case where no treatments happen for the entire test
+    if len(dfTreatments) == 0:
+        print("No treatments during this test")
     deltaToCheck = pd.to_timedelta(10.0, unit='sec')
     dfTreatments=dfTreatments[(dfTreatments['time'] >= (testDetails['startTime']-deltaToCheck)) & \
                  (dfTreatments['time'] <= (testDetails['endTime']+deltaToCheck))]
