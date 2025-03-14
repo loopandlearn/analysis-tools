@@ -35,8 +35,10 @@ def help():
     print("  python glucose_test_overlay_plots.py arg1 arg2 arg3")
     print("    arg1 - path for data I/O")
     print("    arg2 - overlayID - see below")
-    print("    arg3 - plotSubtitle - if provided and not empty string")
-    print("    arg4 - legendFlag - if provided, legends are not shown")
+    print("    arg3 - verboseFlag - 0 = none, 1 = a little verbose, 2 = very verbose")
+    print("    arg4 - plotSubtitle - if provided and not empty string")
+    print("    arg5 - styleOffset - optional, shift style index")
+    print("    arg6 - legendFlag - if provided, legends are not shown")
     print("           legends are not shown if > 5 test are overlaid\n")
     print(" input_for_arg2.txt : text file with list of identifiers")
     print("       each identifier is used to read in data and overlay on a single plot")
@@ -45,10 +47,8 @@ def help():
 
 
 def main():
-    # 0 = none, 1 = a little verbose, 2 = very verbose
-    verboseFlag=0
     duration = 5 # minimum duration, can be longer
-    cumInsulinPlotFlag = 0 # if 0, do not include third plot
+    cumInsulinPlotFlag = 1 # if 0, do not include third plot
 
     numArgs = len(sys.argv)-1
     # if insufficient arguments, provide help
@@ -61,15 +61,19 @@ def main():
     overlayID = sys.argv[2]
 
     # default values for optional arguments
-    plotSubtitle = ""
+    # 0 = none, 1 = a little verbose, 2 = very verbose
+    verboseFlag=0
+    plotSubtitle = overlayID
+    styleOffset = 0
     legendFlag = 1
     if numArgs >= 3:
-        plotSubtitle = sys.argv[3]
-    
-
-    if numArgs == 4:
+        verboseFlag = int(sys.argv[3])
+    if numArgs >= 4:
+        plotSubtitle = sys.argv[4]
+    if numArgs >= 5:
+        styleOffset = int(sys.argv[5])
+    if numArgs == 6:
         legendFlag = 0
-        print("changed legendFlag to ", legendFlag)
 
     inputname = f'input_for_{overlayID}.txt'
     plotname = f'plot_overlay_{overlayID}.png'
@@ -93,8 +97,8 @@ def main():
 
     for test in testList:
         # begin filling in testIO
-        devicestatusFilename = test + "_devicestatus.txt"
-        treatmentsFilename = test + "_treatments.txt"
+        devicestatusFilename = test + "_devicestatus.json"
+        treatmentsFilename = test + "_treatments.json"
         externalLabel = testLabel[testIdx]
 
         content1 = read_raw_nightscout(devicestatusFilename)
@@ -105,25 +109,30 @@ def main():
 
         treatmentsFilename = foldername + "/" + treatmentsFilename
         content2 = read_raw_nightscout(treatmentsFilename)
-        [nightscoutNote, dfTreatments] = extract_treatments(content2)
+        [dfTreatments, ns_notes, ns_notes_timestamp] = extract_treatments(content2)
 
-        # auto detect if this is a high-glucose test or a low-glucose test.
+        # select the range of rows to use for the test analysis using glucose of 110
+        print(test,":")
         [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
-        dfTreatments = filter_test_treatments(dfTreatments, testDetails)
+        [dfTreatments, minBolusIncrement] = filter_test_treatments(dfTreatments, testDetails)
 
-        testDetails['nightscoutNote']=nightscoutNote
+        testDetails['minBolusIncrement']=minBolusIncrement
+        testDetails['ns_notes']=ns_notes
+        testDetails['ns_notes_timestamp']=ns_notes_timestamp
         testDetails['externalLabel']=externalLabel
         testDetails['plotname']=plotname
  
         resultsDict = report_test_results("", testDetails, dfDeviceStatus, dfTreatments)
-        if verboseFlag:
+        if verboseFlag==1:
+            print_dict(testDetails)
+        if verboseFlag==2:
             print_dict(resultsDict)
         
         if testDetails['durationInHours'] > duration:
             duration = testDetails['durationInHours']
 
-        [fig, axes] = plot_one_test(fig, axes, testIdx, duration, 
-                               testDetails['startTime'], dfDeviceStatus, dfTreatments)
+        [fig, axes] = plot_one_test(fig, axes, testIdx, testDetails, dfDeviceStatus, dfTreatments,
+                               styleOffset)
         testIdx += 1
 
     # plot pandas dataframe containing Nightscout data

@@ -89,8 +89,8 @@ def main():
 
     for test in testList:
         # begin filling in testIO
-        devicestatusFilename = test + "_devicestatus.txt"
-        treatmentsFilename = test + "_treatments.txt"
+        devicestatusFilename = test + "_devicestatus.json"
+        treatmentsFilename = test + "_treatments.json"
         externalLabel = testLabel[testIdx]
         testIO = {
                 "foldername": foldername,
@@ -114,9 +114,7 @@ def main():
         content2 = read_raw_nightscout(treatmentsFilename)
         [nightscoutNote, dfTreatments] = extract_treatments(content2)
 
-        # auto detect if this is a high-glucose test or a low-glucose test.
-        # in both cases, the beginning glucose for the test is > 110 or < 110.
-        # the steady state values are always 110.
+        # select the range of rows to use for the test analysis
         [testDetails, dfDeviceStatus] = filter_test_devicestatus(dfDeviceStatus, 110)
         dfTreatments = filter_test_treatments(dfTreatments, testDetails)
 

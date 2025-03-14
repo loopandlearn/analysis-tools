@@ -21,17 +21,23 @@ def report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments):
     iobTime=iobTimeDF.iloc[0]['time']
     iobDeltaTimeMinutes=round((iobTime - startTime).seconds/60.0)
 
-    # cumulative insulin stats
-    maxCumInsulin=dfTreatments['insulinCumsum'].max()
-    finalCumInsulin=dfTreatments.iloc[-1]['insulinCumsum']
-    ciTimeDF=dfTreatments[(dfTreatments['insulinCumsum'] > (maxCumInsulin-0.01))]
-    ciTime=ciTimeDF.iloc[0]['time']
-    ciDeltaTimeMinutes=round((ciTime - startTime).seconds/60.0)
+    # cumulative insulin stats valid only when there are treatments
+    if len(dfTreatments) > 2:
+        maxCumInsulin=dfTreatments['insulinCumsum'].max()
+        finalCumInsulin=dfTreatments.iloc[-1]['insulinCumsum']
+        ciTimeDF=dfTreatments[(dfTreatments['insulinCumsum'] > (maxCumInsulin-0.01))]
+        ciTime=ciTimeDF.iloc[0]['time']
+        ciDeltaTimeMinutes=round((ciTime - startTime).seconds/60.0)
+    else:
+        maxCumInsulin = 0
+        finalCumInsulin = 0
+        ciDeltaTimeMinutes = 0
+
 
     headerString = 'StartTime, MinutesToMaxIOB, MinutesToMaxCumInsulin, ' + \
                     'StartIOB, maxIOB, adjMaxIOB, finalIOB, ' + \
                     'maxCumInsulin, finalCumInsulin, ' + \
-                    'ExternalLabel, NightscoutNote, Plotname'
+                    'ExternalLabel, ns_notes, Plotname'
     
     # set up a dictionary of the test results
     resultsDict = {'headerString': headerString,
@@ -45,12 +51,12 @@ def report_test_results(reportFilename, testIO, dfDeviceStatus, dfTreatments):
                 'maxCumInsulin': maxCumInsulin,
                 'finalCumInsulin': finalCumInsulin,
                 'externalLabel': testIO['externalLabel'],
-                'nightscoutNote': testIO['nightscoutNote'],
+                'ns_notes': testIO['ns_notes'],
                 'plotname': testIO['plotname'] }
 
     if len(reportFilename) > 1:
         write_test_result(reportFilename, resultsDict)
-        print('  Row appended to ', reportFilename)
+        #print('  Row appended to ', reportFilename)
 
     return resultsDict
 
@@ -76,7 +82,7 @@ def write_test_result(reportFilename, resultsDict):
     stream_out.write('"')
     stream_out.write(f"{resultsDict['externalLabel']}")
     stream_out.write('","')
-    stream_out.write(f"{resultsDict['nightscoutNote']}")
+    stream_out.write(f"{resultsDict['ns_notes']}")
     stream_out.write('",')
     stream_out.write(f"{resultsDict['plotname']}")
     stream_out.write('\n')

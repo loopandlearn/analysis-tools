@@ -28,8 +28,8 @@ def add_delta_time_column_in_hours(startTime, dataframe):
 
 def select_non_zero_diffs(dataframe, columnString, epsilon):
     # skip time stamps where the column of interest does not change
-    # this was not working as expected in some cases
-    #  and only using tests with the 5-minute loop cycle enforced so not needed
+    # modify usage. Call it with 'elapsedHours' to remove rows that have
+    # same glucose time as other rows to get only new data
     dataframe['deltaValue'] = dataframe[columnString].diff()
     dataframe=dataframe[dataframe['deltaValue'].abs() > epsilon]
     dataframe=dataframe.reset_index(drop=True)
@@ -46,14 +46,22 @@ def plot_initiate(nrows, ncols):
     return fig, axes
 
 
-def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments):
+def plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus, dfTreatments, styleOffset):
     naxes=len(axes)
 
-    colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
-                 'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
-    styleList = ['-', '--', '-.', ':']
-    color = colorList[idx%len(colorList)]
-    style = styleList[idx%len(styleList)]
+    colorList = ['black', 'magenta', 'cyan', 'green', 'darkgoldenrod', 'purple', 
+                 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
+    styleLineList = ['-', '--', '-.', ':']
+    stylePointList = ['p', '*', 'x', '+', '.', 'd']
+    # sometimes want to offset the colors to compare items
+    styleIdx = idx+styleOffset
+    color = colorList[styleIdx%len(colorList)]
+    styleLine = styleLineList[styleIdx%len(styleLineList)]
+    stylePoint = stylePointList[styleIdx%len(stylePointList)]
+
+    duration = testDetails['durationInHours']+1
+    startTime = testDetails['startTime']
+
     xRange = [0, duration]
     if duration > 4.2:
         bottom_ticks = np.arange(0, duration, step=1)
@@ -62,26 +70,43 @@ def plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatme
     dfDeviceStatus = add_delta_time_column_in_hours(startTime, dfDeviceStatus)
     dfTreatments = add_delta_time_column_in_hours(startTime, dfTreatments)
 
-    '''
-    print(dfDeviceStatus)
+    verboseFlag = 1
+    if verboseFlag == 2:
+        print(dfDeviceStatus.iloc[0:15])
+        print(dfDeviceStatus.iloc[-15:-1])
 
-    epsilon = 0.06
-    dfIOB = select_non_zero_diffs(dfDeviceStatus, 'IOB', epsilon)
-    epsilon = 0.02
-    dfInsulinCumSum = select_non_zero_diffs(dfTreatments, 'insulinCumsum', epsilon)
-    print(dfIOB)
-    print(dfTreatments)
-    print(dfInsulinCumSum)
-    '''
+    filterFlag = 1
+    if filterFlag:
+        epsilon = 0.06
+        dfDeviceStatus = select_non_zero_diffs(dfDeviceStatus, 'elapsedHours', epsilon)
+
+    initialIOB = dfDeviceStatus.iloc[0]['IOB']
+
+    if len(dfTreatments) > 4:
+        if dfTreatments.iloc[0]['insulinType'] == dfTreatments.iloc[-1]['insulinType']:
+            insulinString = dfTreatments.iloc[0]['insulinType']
+        else:
+            insulinString = dfTreatments.iloc[0]['insulinType'] + '&' + dfTreatments.iloc[-1]['insulinType']
+        print('\tInitial IOB {0:.2f}, {1}, minBolusIncrement {2:.2f}, rows uniq elapsedHours {3:d}'.format(
+            initialIOB, insulinString, testDetails['minBolusIncrement'], len(dfDeviceStatus)))
+
+
+    if verboseFlag == 2:
+        print("After filtering:")
+        print(dfDeviceStatus.iloc[0:15])
+        print(dfDeviceStatus.iloc[-15:-1])
+        print(dfTreatments)
 
     # plot glucose each time to ensure alignment
     dfDeviceStatus.plot(x='elapsedHours', y='glucose', c=color, ax=axes[0],
-                        style=style, xlim=xRange, xticks=bottom_ticks)
+                        linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
     dfDeviceStatus.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1],
-                        style=style, xlim=xRange, xticks=bottom_ticks)
+                        linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
+    #if naxes == 3 & len(dfTreatments) >= 3:
     if naxes == 3:
         dfTreatments.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2],
-                        style=style, xlim=xRange, xticks=bottom_ticks)
+                        linestyle=styleLine, marker=stylePoint, linewidth=0.5,
+                        xlim=xRange, xticks=bottom_ticks)
     plt.draw()
     plt.pause(0.001)
 
@@ -109,14 +134,15 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
     axes[0].set_ylim([a, b])
 
     # handle case where IOB is never zero for entire plot
+    #  labels are just above this plot, so increase autoscale for max to 1.3 times
     axes[1].set_ylabel("IOB (U)")
     iob_ylim = axes[1].get_ylim()
     if testDetails['type'] == 'high':
         a = min(1.1*iob_ylim[0], -1)
-        b = max(1.1*iob_ylim[1], 10)
+        b = max(1.3*iob_ylim[1], 10)
     else:
-        a = min(1.1*iob_ylim[0], -1)
-        b = max(1.1*iob_ylim[1], 6)
+        a = min(1.1*iob_ylim[0], -2)
+        b = max(1.3*iob_ylim[1], 2)
     axes[1].set_ylim([a, b])
 
     if naxes == 3:
@@ -126,8 +152,8 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
             a = min(1.1*insulinCumsum_ylim[0], -1)
             b = max(1.1*insulinCumsum_ylim[1], 10)
         else:
-            a = min(1.1*insulinCumsum_ylim[0], -1)
-            b = max(1.1*insulinCumsum_ylim[1], 8)
+            a = min(1.1*insulinCumsum_ylim[0], -2)
+            b = max(1.1*insulinCumsum_ylim[1], 2)
         axes[2].set_ylim([a, b])
         axes[2].legend('')
 
@@ -149,46 +175,61 @@ def plot_format(fig, axes, testDetails, testLabel, titleString, legendFlag):
 def plot_save(outFile, fig):
     plt.draw()
     plt.pause(0.001)
-    plt.pause(1)
+    plt.pause(2)
     plt.savefig(outFile)
     plt.close(fig)
     return
 
 
-def plot_single_test(outFile, label, testDetails, legendFlag, duration, startTime, dfDeviceStatus, dfTreatments):
+def plot_single_test(outFile, label, testDetails, legendFlag, dfDeviceStatus,
+                     dfTreatments, styleOffset):
     nrows = 3
+    #if len(dfTreatments) < 4:
+    #    nrows = 2
     ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
     idx = 0
+
+    startTime = testDetails['startTime']
+
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}\n')
-    [fig, axes] = plot_one_test(fig, axes, idx, duration, startTime, dfDeviceStatus, dfTreatments)
+    [fig, axes] = plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus,
+                                dfTreatments, styleOffset)
     [fig, axes] = plot_format(fig, axes, testDetails, "", titleString, legendFlag)
     plot_save(outFile, fig)
     return
 
 
-def plot_glucose(outFile, label, legendFlag, duration, startTime, dfDeviceStatus):
+def plot_glucose(outFile, label, legendFlag, testDetails, dfDeviceStatus):
     nrows = 2
     ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
     oneHrInSec = 3600.0
+
+    duration = testDetails['durationInHours']+1 # go past end of test
+    startTime = testDetails['startTime']
+
     if duration == 0:
         duration= (dfDeviceStatus.iloc[-1]['time']- 
                    dfDeviceStatus.iloc[0]['time']).total_seconds()/oneHrInSec
     idx = 0
     titleString = (f'Analysis: {startTime.strftime("%Y-%m-%d %H:%M")}\n{label}')
-    [fig, axes] = plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus)
+    [fig, axes] = plot_one_glucose(fig, axes, idx, testDetails, dfDeviceStatus)
     axes[0].set_title(titleString)
     plot_save(outFile, fig)
     return
 
 
-def plot_one_glucose(fig, axes, idx, duration, startTime, dfDeviceStatus):
+def plot_one_glucose(fig, axes, idx, testDetails, dfDeviceStatus):
     colorList = ['black', 'magenta', 'cyan', 'green', 'purple', 
                  'darkgoldenrod', 'red', 'darkviolet', 'sandybrown', 'mediumslateblue']
     styleList = ['-', '--', '-.', ':']
     color = colorList[idx%len(colorList)]
     style = styleList[idx%len(styleList)]
+
+    duration = testDetails['durationInHours']+1 # go past end of test
+    startTime = testDetails['startTime']
+
     xRange = [0, duration]
     if duration > 4.1:
         bottom_ticks = np.arange(0, duration, step=1)
