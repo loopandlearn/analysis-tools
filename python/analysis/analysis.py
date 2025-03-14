@@ -200,12 +200,18 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     #   use a glucose range, keep steady state at 110, 109, 111 levels
     # Update this function to handle any glucose trace
     # The beginning and ending indices come from out-of-glucose-range values
+    # Need to handle a new class of tests (carbs and/or bolus added):
+    #   Begin analysis before the test begins
+    #   Must use time, not row indices
 
     noisy = 0
     absDeltaAllowed = 2
     lowThreshold = glucoseThreshold - absDeltaAllowed
     highThreshold = glucoseThreshold + absDeltaAllowed
     extraRowsEndOfTest = 48 # add rows at end of tests
+    # new test protocol, enter carbs/bolus at same time glucose trace starts
+    # first 3 readings of every test glucose trace are at steady state
+    extraTimeBeginningOfTest = 25 # minutes
 
     # first find all indices within the glucoseThreshold band
     # indices = df.loc[(df['A'] >= 20) & (df['A'] <= 40)].index
@@ -220,13 +226,22 @@ def filter_test_devicestatus(dfDeviceStatus, glucoseThreshold):
     if noisy:
         print(idxOutRange)
     # report information about the test
-    idx0 = max(idxOutRange[0],0)
+    idx0Glucose = max(idxOutRange[0],0)
     idx1 = idxOutRange[-1]
     # for type: if all idxOutRange are high - it is high
-    if min(dfDeviceStatus.iloc[idx0:idx1]['glucose']) > highThreshold:
+    if min(dfDeviceStatus.iloc[idx0Glucose:idx1]['glucose']) > highThreshold:
         type = 'high'
     else:
         type = 'mixed'
+
+    startTimeGlucose = dfDeviceStatus.iloc[idx0Glucose]['time']
+    # adjust startTime by extraTimeBeginningOfTest
+    startTime = startTimeGlucose - pd.Timedelta(seconds=60 * extraTimeBeginningOfTest)
+    # find index after beforeStartTime, limited to valid indices using >=
+    idxAfterStart = dfDeviceStatus.loc[(dfDeviceStatus['time'] >= startTime)].index
+    idx0 = idxAfterStart[0]
+    print('\tidx0Glucose, startTimeGlucose, idx0, startTime',
+          idx0Glucose, startTimeGlucose, idx0, startTime)
 
     idx1 = min(idx1 + extraRowsEndOfTest,len(dfDeviceStatus)-1)
     print('\trowsAvail, rowsUsed, idx0, idx1, glucose: idx0, ixd1')
