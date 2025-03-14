@@ -48,7 +48,7 @@ def help():
 
 def main():
     duration = 5 # minimum duration, can be longer
-    cumInsulinPlotFlag = 0 # if 0, do not include third plot
+    cumInsulinPlotFlag = 1 # if 0, do not include third plot
 
     numArgs = len(sys.argv)-1
     # if insufficient arguments, provide help

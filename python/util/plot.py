@@ -82,7 +82,7 @@ def plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus, dfTreatments, sty
 
     initialIOB = dfDeviceStatus.iloc[0]['IOB']
 
-    if len(dfTreatments) > 10:
+    if len(dfTreatments) > 4:
         if dfTreatments.iloc[0]['insulinType'] == dfTreatments.iloc[-1]['insulinType']:
             insulinString = dfTreatments.iloc[0]['insulinType']
         else:
@@ -102,7 +102,8 @@ def plot_one_test(fig, axes, idx, testDetails, dfDeviceStatus, dfTreatments, sty
                         linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
     dfDeviceStatus.plot(x='elapsedHours', y='IOB', c=color, ax=axes[1],
                         linestyle=styleLine, marker=stylePoint, xlim=xRange, xticks=bottom_ticks)
-    if naxes == 3 & len(dfTreatments) >= 10:
+    #if naxes == 3 & len(dfTreatments) >= 3:
+    if naxes == 3:
         dfTreatments.plot(x='elapsedHours', y='insulinCumsum', c=color, ax=axes[2],
                         linestyle=styleLine, marker=stylePoint, linewidth=0.5,
                         xlim=xRange, xticks=bottom_ticks)
@@ -183,8 +184,8 @@ def plot_save(outFile, fig):
 def plot_single_test(outFile, label, testDetails, legendFlag, dfDeviceStatus,
                      dfTreatments, styleOffset):
     nrows = 3
-    if len(dfTreatments) < 10:
-        nrows = 2
+    #if len(dfTreatments) < 4:
+    #    nrows = 2
     ncols = 1
     [fig, axes] = plot_initiate(nrows, ncols)
     idx = 0
